@@ -195,6 +195,28 @@ Esta aplicación está optimizada para desplegarse en Vercel:
 4. **Despliegue automático**: Se despliega automáticamente en cada push
 
 ### Archivos de configuración para Vercel:
-- `vercel.json` - Configuración de routing y functions
+- `vercel.json` - Configuración de routing simplificada
 - `package.json` - Scripts optimizados para Vercel
-- Socket.IO configurado como API Route en `/pages/api/socket.ts`
+- Socket.IO configurado como API Route en `/src/pages/api/socket.ts`
+
+### Pasos para desplegar:
+
+1. **Opción 1 - Dashboard de Vercel:**
+   - Ve a [vercel.com](https://vercel.com)
+   - Haz clic en "New Project"
+   - Importa tu repositorio desde GitHub
+   - Vercel detectará Next.js automáticamente
+   - Haz clic en "Deploy"
+
+2. **Opción 2 - Vercel CLI:**
+   ```bash
+   npm i -g vercel
+   vercel login
+   vercel
+   ```
+
+### Verificar después del despliegue:
+- ✅ La aplicación carga correctamente
+- ✅ Socket.IO funciona para tiempo real
+- ✅ Se pueden crear y unir salas
+- ✅ La interfaz es responsive en móvil
