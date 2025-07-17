@@ -62,7 +62,7 @@ export default function VotingStats({ room }: VotingStatsProps) {
     .sort(([a], [b]) => parseFloat(a) - parseFloat(b))
 
   return (
-    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-6 lg:p-8 mb-8 animate-slide-up">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 lg:p-8 mb-8 animate-slide-up">
       <div className="flex items-center mb-6">
         <div className="bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 p-3 rounded-xl shadow-lg mr-4 animate-pulse">
           <BarChart3 className="w-6 h-6 text-white drop-shadow-lg" />
@@ -79,7 +79,7 @@ export default function VotingStats({ room }: VotingStatsProps) {
       
       {/* Métricas principales */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-        <div className="text-center p-4 lg:p-6 bg-white/60 dark:bg-gray-700/60 backdrop-blur-sm rounded-xl border border-white/40 dark:border-gray-600/40 shadow-md hover:shadow-lg transition-all duration-200">
+        <div className="text-center p-4 lg:p-6 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-md hover:shadow-lg transition-all duration-200">
           <div className="bg-gradient-to-br from-red-500 to-pink-600 p-3 rounded-xl mb-3 w-fit mx-auto shadow-lg">
             <TrendingDown className="w-5 h-5 text-white drop-shadow-sm" />
           </div>
@@ -87,7 +87,7 @@ export default function VotingStats({ room }: VotingStatsProps) {
           <div className="text-sm font-bold text-gray-600 dark:text-gray-300 bg-gradient-to-r from-red-100 to-pink-100 dark:from-red-900/30 dark:to-pink-900/30 px-3 py-1 rounded-full border border-red-200 dark:border-red-800">Mínimo</div>
         </div>
         
-        <div className="text-center p-4 lg:p-6 bg-white/60 dark:bg-gray-700/60 backdrop-blur-sm rounded-xl border border-white/40 dark:border-gray-600/40 shadow-md hover:shadow-lg transition-all duration-200">
+        <div className="text-center p-4 lg:p-6 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-md hover:shadow-lg transition-all duration-200">
           <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-xl mb-3 w-fit mx-auto shadow-lg">
             <Activity className="w-5 h-5 text-white drop-shadow-sm" />
           </div>
@@ -95,7 +95,7 @@ export default function VotingStats({ room }: VotingStatsProps) {
           <div className="text-sm font-bold text-gray-600 dark:text-gray-300 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 px-3 py-1 rounded-full border border-blue-200 dark:border-blue-800">Promedio</div>
         </div>
         
-        <div className="text-center p-4 lg:p-6 bg-white/60 dark:bg-gray-700/60 backdrop-blur-sm rounded-xl border border-white/40 dark:border-gray-600/40 shadow-md hover:shadow-lg transition-all duration-200">
+        <div className="text-center p-4 lg:p-6 bg-white dark:bg-gray-700  rounded-xl border border-gray-200 dark:border-gray-600 shadow-md hover:shadow-lg transition-all duration-200">
           <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-3 rounded-xl mb-3 w-fit mx-auto shadow-lg">
             <Target className="w-5 h-5 text-white drop-shadow-sm" />
           </div>
@@ -103,7 +103,7 @@ export default function VotingStats({ room }: VotingStatsProps) {
           <div className="text-sm font-bold text-gray-600 dark:text-gray-300 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 px-3 py-1 rounded-full border border-purple-200 dark:border-purple-800">Mediana</div>
         </div>
         
-        <div className="text-center p-4 lg:p-6 bg-white/60 dark:bg-gray-700/60 backdrop-blur-sm rounded-xl border border-white/40 dark:border-gray-600/40 shadow-md hover:shadow-lg transition-all duration-200">
+        <div className="text-center p-4 lg:p-6 bg-white dark:bg-gray-700  rounded-xl border border-gray-200 dark:border-gray-600 shadow-md hover:shadow-lg transition-all duration-200">
           <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-3 rounded-xl mb-3 w-fit mx-auto shadow-lg">
             <TrendingUp className="w-5 h-5 text-white drop-shadow-sm" />
           </div>
@@ -114,7 +114,7 @@ export default function VotingStats({ room }: VotingStatsProps) {
 
       {/* Moda */}
       {modes.length === 1 && (
-        <div className="mb-6 p-4 lg:p-6 bg-gradient-to-r from-amber-50/90 via-orange-50/90 to-yellow-50/90 dark:from-amber-900/20 dark:via-orange-900/20 dark:to-yellow-900/20 backdrop-blur-sm border border-amber-200/50 dark:border-amber-800/50 rounded-2xl shadow-lg">
+        <div className="mb-6 p-4 lg:p-6 bg-gradient-to-r from-amber-50/90 via-orange-50/90 to-yellow-50/90 dark:from-amber-900/20 dark:via-orange-900/20 dark:to-yellow-900/20  border border-amber-200/50 dark:border-amber-800/50 rounded-2xl shadow-lg">
           <div className="flex items-center">
             <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-xl shadow-lg mr-4">
               <Target className="w-6 h-6 text-white drop-shadow-sm" />
@@ -146,12 +146,12 @@ export default function VotingStats({ room }: VotingStatsProps) {
           {voteDistribution.map(([value, count], index) => {
             const percentage = (count / numericVotes.length) * 100
             return (
-              <div key={value} className="stagger-item flex items-center p-3 bg-white/60 dark:bg-gray-700/60 backdrop-blur-sm rounded-lg border border-white/40 dark:border-gray-600/40 shadow-md hover:shadow-lg transition-all duration-200" style={{animationDelay: `${index * 0.1}s`}}>
+              <div key={value} className="stagger-item flex items-center p-3 bg-white dark:bg-gray-700  rounded-lg border border-gray-200 dark:border-gray-600 shadow-md hover:shadow-lg transition-all duration-200" style={{animationDelay: `${index * 0.1}s`}}>
                 <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-lg flex items-center justify-center font-bold text-lg shadow-lg">
                   {value}
                 </div>
                 <div className="flex-1 mx-4">
-                  <div className="w-full bg-gray-200/60 dark:bg-gray-600/60 rounded-full h-3 shadow-inner backdrop-blur-sm">
+                  <div className="w-full bg-gray-700 dark:bg-gray-700 rounded-full h-3 shadow-inner ">
                     <div
                       className="bg-gradient-to-r from-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-700 animate-glow shadow-md"
                       style={{ width: `${percentage}%` }}
@@ -173,7 +173,7 @@ export default function VotingStats({ room }: VotingStatsProps) {
       </div>
 
       {/* Consenso */}
-      <div className="p-4 lg:p-6 bg-gradient-to-r from-indigo-50/90 via-purple-50/90 to-pink-50/90 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 backdrop-blur-sm border border-indigo-200/50 dark:border-indigo-800/50 rounded-xl shadow-lg animate-scale-in">
+      <div className="p-4 lg:p-6 bg-gradient-to-r from-indigo-50/90 via-purple-50/90 to-pink-50/90 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20  border border-indigo-200/50 dark:border-indigo-800/50 rounded-xl shadow-lg animate-scale-in">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center">
             <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-xl shadow-lg mr-4 animate-float">
@@ -189,7 +189,7 @@ export default function VotingStats({ room }: VotingStatsProps) {
             </div>
           </div>
           <div className="text-center lg:text-right">
-            <div className={`inline-flex items-center px-4 py-3 rounded-xl font-bold text-lg shadow-lg backdrop-blur-sm ${
+            <div className={`inline-flex items-center px-4 py-3 rounded-xl font-bold text-lg shadow-lg  ${
               max - min <= 2 
                 ? 'bg-gradient-to-r from-green-100/90 to-emerald-100/90 text-green-800 dark:from-green-900/30 dark:to-emerald-900/30 dark:text-green-300 border border-green-200 dark:border-green-800'
                 : max - min <= 5 

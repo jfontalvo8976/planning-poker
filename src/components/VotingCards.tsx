@@ -22,7 +22,7 @@ export default function VotingCards({ room, currentUser, onVote }: VotingCardsPr
 
   if (!canVote) {
     return (
-      <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-6 sm:p-8 animate-slide-up hover-lift">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 sm:p-8 animate-slide-up hover-lift">
         <h3 className="text-xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-6 flex items-center gap-3">
           👁️ Modo Espectador
         </h3>
@@ -42,7 +42,7 @@ export default function VotingCards({ room, currentUser, onVote }: VotingCardsPr
   }
 
   return (
-    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-6 sm:p-8 animate-slide-up hover-lift">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 sm:p-8 animate-slide-up hover-lift">
       <h3 className="text-xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-6 flex items-center gap-3">
         🎯 Elige tu estimación
         {userVote?.hasVoted && (
@@ -61,7 +61,7 @@ export default function VotingCards({ room, currentUser, onVote }: VotingCardsPr
               voting-card w-14 h-24 p-2 rounded-xl border-2 font-bold text-base sm:text-lg transition-all duration-300 cursor-pointer hover-scale flex items-center justify-center
               ${userVote?.value === value
                 ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-emerald-400 text-white shadow-lg shadow-emerald-200/50 transform scale-105 animate-glow'
-                : 'bg-white/90 dark:bg-gray-700/90 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-lg backdrop-blur-sm cursor-pointer'
+                : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-lg cursor-pointer'
               }
             `}
             style={{
@@ -74,7 +74,7 @@ export default function VotingCards({ room, currentUser, onVote }: VotingCardsPr
       </div>
       
       {userVote?.hasVoted && (
-        <div className="mt-8 p-6 bg-gradient-to-r from-emerald-50/90 via-teal-50/90 to-cyan-50/90 dark:from-emerald-900/20 dark:via-teal-900/20 dark:to-cyan-900/20 border border-emerald-200/50 dark:border-emerald-800/50 rounded-xl animate-scale-in backdrop-blur-sm">
+        <div className="mt-8 p-6 bg-gradient-to-r from-emerald-50/90 via-teal-50/90 to-cyan-50/90 dark:from-emerald-900/20 dark:via-teal-900/20 dark:to-cyan-900/20 border border-emerald-200/50 dark:border-emerald-800/50 rounded-xl animate-scale-in ">
           <p className="text-emerald-800 dark:text-emerald-200 text-center font-bold text-lg flex items-center justify-center gap-3">
             <span className="text-2xl">🎉</span>
             ¡Perfecto! Tu voto ha sido registrado exitosamente

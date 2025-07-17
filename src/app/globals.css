@@ -128,11 +128,10 @@ form button {
   cursor: pointer !important;
 }
 
-/* Modern card styles with glass morphism */
+/* Modern card styles */
 .modern-card {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 1);
+  border: 1px solid rgba(200, 200, 200, 0.3);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
@@ -171,7 +170,6 @@ form button {
   font-weight: 600;
   transition: all 0.3s ease;
   cursor: pointer;
-  backdrop-filter: blur(8px);
 }
 
 .btn-secondary:hover {
@@ -202,14 +200,13 @@ form button {
 
 /* Enhanced input styles */
 .modern-input {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 1);
   border: 2px solid rgba(229, 229, 229, 0.6);
   border-radius: 12px;
   padding: 0.75rem 1rem;
   font-size: 1rem;
   transition: all 0.3s ease;
   width: 100%;
-  backdrop-filter: blur(8px);
 }
 
 .modern-input:focus {
@@ -228,7 +225,6 @@ form button {
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 600;
-  backdrop-filter: blur(8px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -378,17 +374,15 @@ form button {
   transform: scale(1.05);
 }
 
-/* Glass morphism effects */
-.glass-morphism {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+/* Solid background effects */
+.solid-morphism {
+  background: rgba(255, 255, 255, 1);
+  border: 1px solid rgba(200, 200, 200, 0.3);
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+.solid-card {
+  background: rgba(255, 255, 255, 1);
+  border: 1px solid rgba(200, 200, 200, 0.3);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
@@ -452,8 +446,6 @@ html {
   right: 0;
   width: 100%;
   z-index: 50;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   will-change: auto;
   transform: translateZ(0); /* Force hardware acceleration */
 }
@@ -472,13 +464,8 @@ html {
   -webkit-backface-visibility: hidden;
 }
 
-/* Support for backdrop filter fallback */
-@supports not (backdrop-filter: blur(20px)) {
-  .sticky-nav {
-    background: rgba(255, 255, 255, 0.95);
-  }
-  
-  .dark .sticky-nav {
-    background: rgba(31, 41, 55, 0.95);
-  }
+
+
+.dark .sticky-nav {
+  background: rgba(31, 41, 55, 1);
 }

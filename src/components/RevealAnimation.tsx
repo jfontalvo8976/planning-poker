@@ -56,15 +56,15 @@ export default function RevealAnimation({ isRevealing, onComplete, votingValues,
   if (!show) return null
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="glass-morphism rounded-2xl p-8 sm:p-12 text-center shadow-2xl transform transition-all duration-500 border border-white/20 max-w-2xl w-full animate-scaleIn">
+    <div className="w-full py-8 px-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 sm:p-12 text-center shadow-xl border border-gray-200 dark:border-gray-700 max-w-4xl mx-auto animate-slide-up">
         <div className="mb-8">
           {/* Header con icono */}
           <div className="flex items-center justify-center gap-3 mb-6">
             <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-3 rounded-xl shadow-lg animate-float">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold gradient-text">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white ">
               {countdown > 0 ? 'Revelando Votos' : '¡Revelado Completo!'}
             </h2>
           </div>
@@ -148,28 +148,28 @@ export default function RevealAnimation({ isRevealing, onComplete, votingValues,
             <div className="text-5xl sm:text-7xl font-black text-transparent bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 bg-clip-text animate-pulse">
               {countdown}
             </div>
-            <div className="text-lg sm:text-xl font-bold text-gray-700 animate-slideInUp">
+            <div className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
               Preparando la gran revelación...
             </div>
-            <div className="text-sm text-gray-600 animate-slideInUp" style={{animationDelay: '0.2s'}}>
+            <div className="text-sm text-gray-800 dark:text-white" style={{animationDelay: '0.2s'}}>
               ¡Las cartas están a punto de voltearse! 🃏
             </div>
           </div>
         ) : (
-          <div className="space-y-4 animate-zoomIn">
+          <div className="space-y-4">
             <div className="text-3xl sm:text-5xl font-black text-transparent bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 bg-clip-text animate-heartbeat">
               🎉 ¡Revelado! 🎉
             </div>
-            <div className="text-base sm:text-lg text-gray-700 font-semibold">
+            <div className="text-base sm:text-lg text-gray-800 dark:text-white font-semibold">
               {votedValues.length > 0 
                 ? `Se han revelado ${votedValues.length} voto${votedValues.length > 1 ? 's' : ''} exitosamente`
                 : 'Las cartas han sido reveladas con éxito'
               }
             </div>
-            <div className="text-sm text-gray-600 mb-4">
+            <div className="text-sm text-gray-800 dark:text-white mb-4">
               Revisa los resultados y el análisis detallado 📊
             </div>
-            <div className="text-xs text-gray-500 animate-pulse">
+            <div className="text-xs text-gray-800 dark:text-white0 animate-pulse">
               Cerrando automáticamente en unos segundos...
             </div>
           </div>

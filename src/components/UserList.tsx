@@ -108,7 +108,7 @@ export default function UserList({ room, currentUser, onPromoteToModerator, onDe
   }
 
   return (
-    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-6 sm:p-8">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 sm:p-8">
       <h3 className="text-xl font-bold mb-6 flex flex-col gap-3">
         <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
           👥 Lista de Usuarios ({room.users.length})
@@ -155,7 +155,7 @@ export default function UserList({ room, currentUser, onPromoteToModerator, onDe
               p-4 rounded-xl border-2 transition-all duration-200
               ${user.name === currentUser 
                 ? 'bg-gradient-to-r from-indigo-100/80 to-purple-100/80 dark:from-indigo-900/30 dark:to-purple-900/30 border-indigo-400 dark:border-indigo-600 shadow-md' 
-                : 'bg-white/90 dark:bg-gray-700/90 border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md'
+                : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md'
               }
             `}
           >

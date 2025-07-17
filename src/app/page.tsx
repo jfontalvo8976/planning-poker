@@ -66,7 +66,7 @@ export default function Home() {
   if (reconnectionFailed && sessionData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 transition-all duration-500">
-        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-8 text-center max-w-md mx-auto animate-scale-in hover-lift">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 text-center max-w-md mx-auto animate-scale-in hover-lift">
           <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-amber-500 via-orange-600 to-red-600 rounded-full flex items-center justify-center shadow-lg">
             <span className="text-3xl">⚠️</span>
           </div>
@@ -115,7 +115,7 @@ export default function Home() {
   if (shouldAutoReconnect) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 transition-all duration-500">
-        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-8 text-center max-w-md mx-auto animate-scale-in hover-lift">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 text-center max-w-md mx-auto animate-scale-in hover-lift">
           <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-lg animate-spin">
             <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full"></div>
           </div>

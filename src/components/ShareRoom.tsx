@@ -38,7 +38,7 @@ export default function ShareRoom({ roomId, roomName }: ShareRoomProps) {
   }
 
   return (
-    <div className="glass-morphism rounded-xl shadow-lg border border-white/20 p-4 sm:p-5 animate-slideInRight">
+    <div className="glass-morphism rounded-xl shadow-lg border border-gray-200 p-4 sm:p-5 animate-slideInRight">
       <div className="flex items-center gap-3 mb-4">
         <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg shadow-lg animate-float">
           <Share2 className="w-4 h-4 text-white" />
@@ -55,7 +55,7 @@ export default function ShareRoom({ roomId, roomName }: ShareRoomProps) {
             type="text"
             value={roomUrl}
             readOnly
-            className="w-full text-sm bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-4 py-3 text-gray-700 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+            className="w-full text-sm bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-700 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
             placeholder="URL de la sala..."
           />
           <div className="absolute right-2 top-1/2 transform -translate-y-1/2">

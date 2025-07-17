@@ -45,7 +45,7 @@ export default function RoomHeader({ room, roomId, currentUser, onEndRoom }: Roo
   return (
     <>
       {/* Navigation Header */}
-      <nav className="sticky-nav bg-white/95 dark:bg-gray-800/95 border-b border-gray-200/50 dark:border-gray-700/50 shadow-lg supports-[backdrop-filter]:bg-white/60 supports-[backdrop-filter]:dark:bg-gray-800/60">
+      <nav className="sticky-nav bg-white/30 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 lg:h-20">
             
@@ -170,7 +170,7 @@ export default function RoomHeader({ room, roomId, currentUser, onEndRoom }: Roo
         >
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-gray-500/75 dark:bg-gray-900/80 backdrop-blur-sm" 
+            className="absolute inset-0 bg-gray-700/50 dark:bg-gray-700/50 " 
             onClick={() => setIsShareModalOpen(false)}
             aria-hidden="true"
           />

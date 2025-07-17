@@ -53,7 +53,7 @@ export default function ModeratorPanel({
   const canReveal = votedUsers > 0 && allVoted // Solo se puede revelar cuando todos hayan votado
 
   return (
-    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-4 sm:p-6 hover-lift animate-slide-in-right">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6 hover-lift animate-slide-in-right">
       <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
         <div className="bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 p-2 rounded-xl shadow-lg">
           <Coffee className="w-5 h-5 text-white" />
@@ -76,7 +76,7 @@ export default function ModeratorPanel({
           </span>
           <span className="text-gray-600 dark:text-gray-400 font-bold">{votedUsers}/{totalUsers} votos</span>
         </div>
-        <div className="w-full bg-gray-200/60 dark:bg-gray-700/60 rounded-full h-3 overflow-hidden shadow-inner backdrop-blur-sm">
+        <div className="w-full bg-gray-700 dark:bg-gray-700 rounded-full h-3 overflow-hidden shadow-inner ">
           <div 
             className={`h-3 rounded-full transition-all duration-500 ease-out ${
               allVoted 
@@ -152,7 +152,7 @@ export default function ModeratorPanel({
 
       {/* Editor de valores de votación */}
       {isEditingValues && (
-        <div className="bg-gradient-to-r from-indigo-50/90 via-purple-50/90 to-pink-50/90 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 backdrop-blur-sm rounded-xl p-5 border border-indigo-200/50 dark:border-indigo-800/50 shadow-lg animate-scale-in">
+        <div className="bg-gradient-to-r from-indigo-50/90 via-purple-50/90 to-pink-50/90 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20  rounded-xl p-5 border border-indigo-200/50 dark:border-indigo-800/50 shadow-lg animate-scale-in">
           <h4 className="text-base font-bold mb-4 flex items-center gap-2">
             <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-1.5 rounded-lg shadow-lg">
               <Edit3 className="w-4 h-4 text-white" />

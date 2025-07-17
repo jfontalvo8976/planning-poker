@@ -74,7 +74,7 @@ export default function JoinCreateRoom({ onCreateRoom, onJoinRoom, isConnected, 
           </div>
         </div>
 
-        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-6 lg:p-8 hover-lift animate-slide-up" style={{animationDelay: '0.3s'}}>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 lg:p-8 hover-lift animate-slide-up" style={{animationDelay: '0.3s'}}>
           <div className="flex mb-8">
             <button
               onClick={() => setActiveTab('create')}
@@ -227,7 +227,7 @@ export default function JoinCreateRoom({ onCreateRoom, onJoinRoom, isConnected, 
         </div>
 
         {/* <div className="text-center mt-10 animate-fade-in" style={{animationDelay: '0.5s'}}>
-          <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl p-6 border border-white/40 dark:border-gray-700/40 shadow-lg">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
             <p className="text-gray-600 dark:text-gray-300 mb-3 font-medium">
               💡 ¿Primera vez usando Planning Poker?{' '}
               <a href="#" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline decoration-2 underline-offset-2 transition-colors duration-200 font-semibold cursor-pointer">
