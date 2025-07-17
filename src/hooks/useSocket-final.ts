@@ -29,13 +29,18 @@ export const useSocket = (): SocketState => {
       setShouldAutoReconnect(true)
     }
 
-    // Configuración simplificada para debugging
+    // Configuración optimizada para conexión rápida y estable
     const socketInstance = io({
       path: '/socket.io',
-      transports: ['polling'],
-      upgrade: false,
+      transports: ['polling', 'websocket'],
+      upgrade: true,
+      rememberUpgrade: true,
       forceNew: true,
-      timeout: 10000
+      timeout: 5000,
+      reconnection: true,
+      reconnectionDelay: 500,
+      reconnectionAttempts: 5,
+      autoConnect: true
     })
 
     console.log('🔌 Socket.IO client created, waiting for connection...')
@@ -57,6 +62,12 @@ export const useSocket = (): SocketState => {
     socketInstance.on('connect_error', (error) => {
       console.error('🔥 Connection error:', error)
       setIsConnected(false)
+      
+      // Si es un error 503, mostrar mensaje específico sobre Vercel
+      if (error.message.includes('503')) {
+        console.error('❌ Socket.IO not supported in this environment (likely Vercel)')
+        console.error('💡 This app needs to run on a server that supports persistent connections')
+      }
     })
 
     socketInstance.on('reconnect', (attemptNumber) => {
@@ -66,6 +77,15 @@ export const useSocket = (): SocketState => {
 
     socketInstance.on('reconnect_error', (error) => {
       console.error('🔄❌ Reconnection failed:', error)
+    })
+
+    // Eventos específicos para debugging de votos
+    socketInstance.on('vote-confirmed', (data) => {
+      console.log('✅ Vote confirmed:', data)
+    })
+
+    socketInstance.on('vote-cast', (data) => {
+      console.log('📊 Vote cast event received:', data)
     })
 
     setSocket(socketInstance)

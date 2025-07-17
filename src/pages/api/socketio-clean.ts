@@ -18,27 +18,6 @@ interface NextApiResponseWithSocket extends NextApiResponse {
 }
 
 export default function SocketHandler(req: NextApiRequest, res: NextApiResponseWithSocket) {
-  // Detectar si estamos en Vercel
-  const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV
-  
-  if (isVercel) {
-    // En Vercel, responder con un mensaje claro sobre las limitaciones
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-    
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end()
-    }
-    
-    // Retornar error específico para debugging
-    return res.status(503).json({ 
-      error: 'Socket.IO not supported in Vercel serverless environment',
-      message: 'This planning poker app requires a persistent server. Please use a different hosting platform or run locally.',
-      suggestion: 'Consider deploying to Railway, Render, or another platform that supports persistent connections.'
-    })
-  }
-
   if (!res.socket.server.io) {
     console.log('🚀 Starting Socket.IO')
     
@@ -47,15 +26,10 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
       addTrailingSlash: false,
       cors: {
         origin: "*",
-        methods: ["GET", "POST"],
-        credentials: false
+        methods: ["GET", "POST"]
       },
       allowEIO3: true,
-      transports: ['polling', 'websocket'],
-      pingTimeout: 60000,
-      pingInterval: 25000,
-      upgradeTimeout: 30000,
-      maxHttpBufferSize: 1e6
+      transports: ['polling', 'websocket']
     })
     
     res.socket.server.io = io
@@ -121,38 +95,24 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
 
       // Votar
       socket.on('vote', (data: { roomId: string; vote: string }) => {
-        console.log(`📝 Vote received: ${data.vote} in room ${data.roomId} from ${socket.id}`)
-        
         const room = pokersRooms[data.roomId]
         if (!room) {
-          console.log(`❌ Room not found: ${data.roomId}`)
           socket.emit('room-error', { message: 'Room not found' })
           return
         }
 
-        // Registrar el voto
         room.votes[socket.id] = { value: data.vote, userId: socket.id, hasVoted: true }
-        
-        console.log(`✅ Vote registered: ${data.vote} by ${socket.id}`)
-        console.log(`📊 Current votes in room ${data.roomId}:`, Object.keys(room.votes).length)
+
+        console.log(`Vote cast in room ${data.roomId}: ${data.vote}`)
         
         // Verificar si todos han votado
         const votingUsers = room.users.filter(u => u.canVote)
         const votesCount = Object.keys(room.votes).length
-        
-        console.log(`👥 Voting users: ${votingUsers.length}, votes cast: ${votesCount}`)
-        
         if (votesCount === votingUsers.length) {
           room.isVotingComplete = true
-          console.log(`🎯 All users have voted in room ${data.roomId}`)
         }
 
-        // Emitir a toda la sala incluyendo al votante
-        console.log(`📡 Broadcasting vote-cast to room ${data.roomId}`)
-        io.to(data.roomId).emit('vote-cast', { room, votes: room.votes, isComplete: room.isVotingComplete })
-        
-        // También emitir al votante para confirmar
-        socket.emit('vote-confirmed', { vote: data.vote, room })
+        io.to(data.roomId).emit('vote-cast', { room })
       })
 
       // Revelar votos
