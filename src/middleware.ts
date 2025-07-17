@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  // Solo procesar rutas de socket.io
-  if (request.nextUrl.pathname.startsWith('/socket.io')) {
+  // Solo procesar rutas de socket.io en producción (Vercel maneja rewrites)
+  if (request.nextUrl.pathname.startsWith('/socket.io') && process.env.NODE_ENV === 'production') {
     // Crear respuesta con headers CORS apropiados
     const response = NextResponse.rewrite(new URL('/api/socket', request.url))
     

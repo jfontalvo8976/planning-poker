@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { NextApiResponseServerIO, pokersRooms, PokerRoom, User, getDefaultVotingValues } from '../../lib/socket'
 
 export default function SocketHandler(req: NextApiRequest, res: NextApiResponseServerIO) {
+  console.log('Socket API called, method:', req.method)
+  
   // Manejar preflight requests
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*')
@@ -24,36 +26,22 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
       path: '/api/socket',
       addTrailingSlash: false,
       cors: {
-        origin: process.env.NODE_ENV === 'production' 
-          ? ["https://*.vercel.app", "https://your-domain.com"] // Ajustar con tu dominio
-          : ["http://localhost:3000"],
+        origin: "*", // Simplificado para debugging
         methods: ["GET", "POST"],
         credentials: false
       },
-      transports: ['polling', 'websocket'], // Polling first for Vercel
+      transports: ['polling', 'websocket'], // Polling first
       allowEIO3: true,
-      pingTimeout: 30000,
-      pingInterval: 10000,
-      connectTimeout: 20000,
-      upgradeTimeout: 10000,
-      // Configuración específica para serverless
-      maxHttpBufferSize: 1e6, // 1MB
-      httpCompression: true,
-      perMessageDeflate: false
+      pingTimeout: 60000,
+      pingInterval: 25000
     })
     res.socket.server.io = io
 
     // Log de inicialización exitosa
     console.log('✅ Socket.IO server initialized successfully')
     
-    // Agregar timeout para serverless functions
-    const serverlessTimeout = setTimeout(() => {
-      console.log('⏰ Serverless function timeout warning')
-    }, 25000) // 25 segundos (antes del timeout de 30s)
-
     io.on('connection', (socket) => {
-      console.log('New client connected:', socket.id)
-      clearTimeout(serverlessTimeout) // Clear timeout cuando hay conexión activa
+      console.log('🎉 NEW CLIENT CONNECTED:', socket.id)
 
       // Crear una sala
       socket.on('create-room', (data: { userName: string; roomName: string }) => {

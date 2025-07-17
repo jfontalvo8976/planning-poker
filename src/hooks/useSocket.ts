@@ -36,27 +36,29 @@ export const useSocket = (): SocketState => {
       socketUrl = window.location.origin
       socketPath = '/socket.io'  // Vercel redirects this to /api/socket
     } else {
-      socketUrl = 'http://localhost:3000'
-      socketPath = '/socket.io'
+      // En desarrollo, usar el origen actual (puerto dinámico)
+      socketUrl = window.location.origin
+      socketPath = '/socket.io'  // Next.js rewrite a /api/socket
     }
     
     console.log('🔌 Connecting to:', socketUrl, 'with path:', socketPath)
+    console.log('🔌 Environment:', process.env.NODE_ENV)
     
     // Configuración optimizada para Vercel serverless
     const socketConfig = {
       path: socketPath,
-      transports: process.env.NODE_ENV === 'production' 
-        ? ['polling', 'websocket']  // Polling first for Vercel compatibility
-        : ['websocket', 'polling'],
+      transports: ['polling', 'websocket'], // Polling primero en ambos entornos
       upgrade: true,
-      timeout: 20000,
+      timeout: 10000, // Timeout más corto para desarrollo
       forceNew: true,
       autoConnect: true,
       reconnection: true,
-      reconnectionDelay: 2000,
-      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 3,
       withCredentials: false
     }
+    
+    console.log('🔌 Socket config:', socketConfig)
 
     let socketInstance = io(socketUrl, socketConfig)
 
@@ -70,12 +72,6 @@ export const useSocket = (): SocketState => {
       if (connectionAttempts > maxAttempts) {
         console.error('❌ Max connection attempts reached')
         return
-      }
-
-      // En caso de error, solo intentar reconectar si no se ha conectado
-      if (connectionAttempts > 1 && !socketInstance.connected) {
-        console.log('🔄 Retrying connection...')
-        socketInstance.connect()
       }
     }
 

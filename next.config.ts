@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ['socket.io'],
+  async rewrites() {
+    return [
+      {
+        source: '/socket.io/:path*',
+        destination: '/api/socket',
+      },
+    ];
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
