@@ -29,26 +29,24 @@ export const useSocket = (): SocketState => {
       setShouldAutoReconnect(true)
     }
 
-    // Configuración optimizada para producción y desarrollo
+    // Configuración simplificada para debugging
     const socketInstance = io({
-      path: '/api/socketio',
-      transports: ['polling', 'websocket'],
-      upgrade: true,
-      rememberUpgrade: false,
-      timeout: 30000,
+      path: '/socket.io',
+      transports: ['polling'],
+      upgrade: false,
       forceNew: true,
-      withCredentials: true,
-      autoConnect: true,
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 10
+      timeout: 10000
     })
 
-    console.log('🔌 Socket.IO client created')
+    console.log('🔌 Socket.IO client created, waiting for connection...')
+    
+    // Establecer el socket inmediatamente
+    setSocket(socketInstance)
 
     socketInstance.on('connect', () => {
       console.log('✅ CONNECTED! Socket ID:', socketInstance.id)
       setIsConnected(true)
+      setSocket(socketInstance) // Asegurar que el socket se setea aquí también
     })
 
     socketInstance.on('disconnect', (reason) => {
