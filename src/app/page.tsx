@@ -1,103 +1,176 @@
-import Image from "next/image";
+'use client'
+
+import { useEffect } from 'react'
+import { useSocket } from '../hooks/useSocket'
+import { usePokerRoom } from '../hooks/usePokerRoom'
+import { getUrlQuery } from '../utils/urlUtils'
+import JoinCreateRoom from '../components/JoinCreateRoom'
+import PokerRoom from '../components/PokerRoom'
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { socket, isConnected, sessionData, shouldAutoReconnect, clearAutoReconnect } = useSocket()
+  const {
+    room,
+    currentUser,
+    roomId,
+    reconnectionFailed,
+    createRoom,
+    joinRoom,
+    vote,
+    revealVotes,
+    resetVoting,
+    toggleModeratorVoting,
+    updateVotingValues,
+    promoteToModerator,
+    demoteFromModerator,
+    endRoom,
+    clearReconnectionFailed,
+  } = usePokerRoom(socket, sessionData, shouldAutoReconnect, clearAutoReconnect)
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    // Check if there's a room ID in the URL
+    const roomIdFromUrl = getUrlQuery('room')
+    
+    // Si hay un roomId en la URL y es diferente al guardado en sessionStorage, limpiar el storage
+    if (roomIdFromUrl && sessionData && sessionData.roomId !== roomIdFromUrl) {
+      console.log('URL room ID differs from stored session, clearing storage and URL')
+      console.log('URL room ID:', roomIdFromUrl, 'Stored room ID:', sessionData.roomId)
+      clearReconnectionFailed() // Esto limpia la sesión y también la URL
+    }
+  }, [sessionData, clearReconnectionFailed])
+
+
+  if (room) {
+    return (
+      <PokerRoom
+        room={room}
+        currentUser={currentUser}
+        roomId={roomId}
+        onVote={vote}
+        onRevealVotes={revealVotes}
+        onResetVoting={resetVoting}
+        onToggleModeratorVoting={toggleModeratorVoting}
+        onUpdateVotingValues={updateVotingValues}
+        onPromoteToModerator={promoteToModerator}
+        onDemoteFromModerator={demoteFromModerator}
+        onEndRoom={endRoom}
+      />
+    )
+  }
+
+  // Si la reconexión falló, mostrar opciones al usuario
+  if (reconnectionFailed && sessionData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 transition-all duration-500">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-8 text-center max-w-md mx-auto animate-scale-in hover-lift">
+          <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-amber-500 via-orange-600 to-red-600 rounded-full flex items-center justify-center shadow-lg">
+            <span className="text-3xl">⚠️</span>
+          </div>
+          <h2 className="text-xl font-semibold bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 bg-clip-text text-transparent mb-2 animate-slide-in-left">
+            No se pudo reconectar
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-4 animate-fade-in">
+            La sala guardada no está disponible o ya no existe.
+          </p>
+          <div className="mb-6 p-3 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+            <p className="text-sm text-amber-700 dark:text-amber-300 font-medium mb-2">Sesión guardada:</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Sala: <span className="font-medium">{sessionData.roomName}</span><br/>
+              Usuario: <span className="font-medium">{sessionData.userName}</span>
+            </p>
+          </div>
+          
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                if (sessionData.roomId && sessionData.userName) {
+                  joinRoom(sessionData.roomId, sessionData.userName, 'participant')
+                }
+              }}
+              className="w-full bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-600 hover:from-indigo-600 hover:via-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer transform hover:scale-105"
+            >
+              Intentar reconectar
+            </button>
+            <button
+              onClick={clearReconnectionFailed}
+              className="w-full bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer transform hover:scale-105"
+            >
+              Empezar de nuevo
+            </button>
+          </div>
+          
+          <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+            Estado de conexión: {isConnected ? '✅ Conectado' : '⏳ Conectando...'}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+      </div>
+    )
+  }
+
+  if (shouldAutoReconnect || (sessionData && !room)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 transition-all duration-500">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-8 text-center max-w-md mx-auto animate-scale-in hover-lift">
+          <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-lg animate-spin">
+            <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full"></div>
+          </div>
+          <h2 className="text-xl font-semibold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2 animate-slide-in-left">
+            {shouldAutoReconnect ? 'Reconectando...' : 'Conectando a tu sala...'}
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-4 animate-fade-in">
+            {shouldAutoReconnect ? 'Restaurando tu sesión anterior' : 'Cargando sala guardada'}
+            {sessionData && (
+              <span className="block text-sm bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-medium mt-2 animate-slide-in-up">
+                Sala: {sessionData.roomName} | Usuario: {sessionData.userName}
+              </span>
+            )}
+          </p>
+          
+          {/* Iconos de roles mientras reconecta */}
+          <div className="mb-4 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800 animate-fade-in">
+            <div className="text-xs text-gray-600 dark:text-gray-400 mb-2 font-medium">Iconos de roles en la sala:</div>
+            <div className="flex justify-center gap-3 text-xs">
+              <div className="flex items-center gap-1">
+                <div className="bg-gradient-to-br from-amber-400 to-orange-500 p-0.5 rounded-full shadow-sm">
+                  <span className="text-white text-[0.6rem] w-3 h-3 flex items-center justify-center">👑</span>
+                </div>
+                <span className="text-amber-700 dark:text-amber-300 font-medium">Creador</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="bg-gradient-to-br from-emerald-400 to-teal-500 p-0.5 rounded-full shadow-sm">
+                  <span className="text-white text-[0.6rem] w-3 h-3 flex items-center justify-center">⭐</span>
+                </div>
+                <span className="text-emerald-700 dark:text-emerald-300 font-medium">Moderador</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="bg-gradient-to-br from-indigo-400 to-purple-500 p-0.5 rounded-full shadow-sm">
+                  <span className="text-white text-[0.6rem] w-3 h-3 flex items-center justify-center">👤</span>
+                </div>
+                <span className="text-indigo-700 dark:text-indigo-300 font-medium">Participante</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="bg-gradient-to-br from-gray-400 to-slate-500 p-0.5 rounded-full shadow-sm">
+                  <span className="text-white text-[0.6rem] w-3 h-3 flex items-center justify-center">👁️</span>
+                </div>
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Observador</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="text-xs text-gray-500 dark:text-gray-400 animate-pulse">
+            Estado de conexión: {isConnected ? '✅ Conectado' : '⏳ Conectando...'}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <JoinCreateRoom
+      onCreateRoom={createRoom}
+      onJoinRoom={(roomId, userName, role) => joinRoom(roomId, userName, role)}
+      isConnected={isConnected}
+      sessionData={sessionData}
+    />
+  )
 }
