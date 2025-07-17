@@ -1,13 +1,13 @@
 {
   "functions": {
-    "src/pages/api/socket.ts": {
+    "src/pages/api/socketio.ts": {
       "maxDuration": 30
     }
   },
   "rewrites": [
     {
       "source": "/socket.io/(.*)",
-      "destination": "/api/socket"
+      "destination": "/api/socketio"
     }
   ],
   "headers": [

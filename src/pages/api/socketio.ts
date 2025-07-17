@@ -18,6 +18,44 @@ interface NextApiResponseWithSocket extends NextApiResponse {
 }
 
 export default function SocketHandler(req: NextApiRequest, res: NextApiResponseWithSocket) {
+  // Verificar si estamos en Vercel (environment serverless)
+  const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV
+
+  if (isVercel) {
+    // En Vercel, manejar Socket.IO de manera simplificada
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+    
+    if (req.method === 'OPTIONS') {
+      res.status(200).end()
+      return
+    }
+    
+    if (req.method === 'GET') {
+      // Respuesta de handshake para Socket.IO
+      const response = {
+        sid: uuidv4(),
+        upgrades: [],
+        pingInterval: 25000,
+        pingTimeout: 60000,
+        maxPayload: 1000000
+      }
+      res.status(200).json(response)
+      return
+    }
+    
+    if (req.method === 'POST') {
+      // Manejar mensajes POST de Socket.IO
+      res.status(200).send('ok')
+      return
+    }
+    
+    res.status(405).json({ error: 'Method not allowed' })
+    return
+  }
+
+  // Configuración normal para desarrollo local
   if (res.socket.server.io) {
     console.log('✅ Socket.IO already running')
   } else {
@@ -26,6 +64,17 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
     const io = new ServerIO(res.socket.server, {
       path: '/api/socketio',
       addTrailingSlash: false,
+      cors: {
+        origin: process.env.NODE_ENV === 'production' 
+          ? ['https://planning-poker-cyan.vercel.app', 'https://*.vercel.app']
+          : "*",
+        methods: ["GET", "POST"],
+        credentials: true
+      },
+      allowEIO3: true,
+      transports: ['polling', 'websocket'],
+      pingTimeout: 60000,
+      pingInterval: 25000,
     })
 
     res.socket.server.io = io

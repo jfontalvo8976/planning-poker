@@ -2,14 +2,22 @@
 
 import { useEffect } from 'react'
 import { useSocket } from '../hooks/useSocket-final'
+import { usePollingSocket } from '../hooks/usePollingSocket'
 import { usePokerRoom } from '../hooks/usePokerRoom'
 import { getUrlQuery } from '../utils/urlUtils'
 import JoinCreateRoom from '../components/JoinCreateRoom'
 import PokerRoom from '../components/PokerRoom'
 
 export default function Home() {
-  const { socket, isConnected, sessionData, shouldAutoReconnect, clearAutoReconnect } = useSocket()
-  console.log('Socket state:', { socket, isConnected, sessionData, shouldAutoReconnect })
+  // Detectar si estamos en producción (Vercel) o en desarrollo
+  const isProduction = process.env.NODE_ENV === 'production'
+  
+  // Usar polling en producción, Socket.IO en desarrollo
+  const socketConnection = isProduction ? usePollingSocket() : useSocket()
+  const { socket, isConnected, sessionData, shouldAutoReconnect, clearAutoReconnect } = socketConnection
+  
+  console.log('Socket state:', { socket, isConnected, sessionData, shouldAutoReconnect, mode: isProduction ? 'polling' : 'socket.io' })
+  
   const {
     room,
     currentUser,

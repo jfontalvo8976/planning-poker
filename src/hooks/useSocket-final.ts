@@ -29,14 +29,19 @@ export const useSocket = (): SocketState => {
       setShouldAutoReconnect(true)
     }
 
-    // Configuración simplificada que funciona
+    // Configuración optimizada para producción y desarrollo
     const socketInstance = io({
       path: '/api/socketio',
       transports: ['polling', 'websocket'],
       upgrade: true,
       rememberUpgrade: false,
-      timeout: 20000,
-      forceNew: true
+      timeout: 30000,
+      forceNew: true,
+      withCredentials: true,
+      autoConnect: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 10
     })
 
     console.log('🔌 Socket.IO client created')
