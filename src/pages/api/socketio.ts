@@ -227,6 +227,15 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
 
         console.log(`Votes revealed in room: ${data.roomId}`)
         io.to(data.roomId).emit('votes-revealed', { room })
+        
+        // Cerrar automáticamente el modal de revelación después de 4 segundos
+        setTimeout(() => {
+          if (pokersRooms[data.roomId]) {
+            pokersRooms[data.roomId].isRevealing = false
+            console.log(`Reveal modal closed automatically in room: ${data.roomId}`)
+            io.to(data.roomId).emit('reveal-modal-closed', { room: pokersRooms[data.roomId] })
+          }
+        }, 4000) // 4 segundos para que la animación complete
       })
 
       // Resetear votación

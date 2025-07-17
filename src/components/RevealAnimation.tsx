@@ -33,6 +33,12 @@ export default function RevealAnimation({ isRevealing, onComplete, votingValues,
           if (prev <= 1) {
             clearInterval(interval)
             setShowCards(true)
+            
+            // Auto-cerrar el modal después de 1 segundo adicional cuando las cartas se revelan
+            setTimeout(() => {
+              onComplete()
+            }, 1000)
+            
             return 0
           }
           return prev - 1

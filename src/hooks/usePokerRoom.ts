@@ -195,6 +195,11 @@ export const usePokerRoom = (
       alert(`${data.message}: ${data.roomName}`)
     }
 
+    const handleRevealModalClosed = (data: { room: PokerRoom }) => {
+      console.log('🔒 Reveal modal closed:', data.room.id)
+      setRoom(data.room)
+    }
+
     // Event listeners
     socket.on('room-created', handleRoomCreated)
     socket.on('room-joined', handleRoomJoined)
@@ -205,6 +210,7 @@ export const usePokerRoom = (
     socket.on('vote-cast', handleVoteCast)
     socket.on('votes-revealed', handleRoomUpdate)
     socket.on('reveal-started', handleRoomUpdate)
+    socket.on('reveal-modal-closed', handleRevealModalClosed)
     socket.on('voting-reset', handleRoomUpdate)
     socket.on('moderator-voting-toggled', handleRoomUpdateWithSession)
     socket.on('voting-values-updated', handleRoomUpdateWithSession)
@@ -224,6 +230,7 @@ export const usePokerRoom = (
       socket.off('vote-cast', handleVoteCast)
       socket.off('votes-revealed', handleRoomUpdate)
       socket.off('reveal-started', handleRoomUpdate)
+      socket.off('reveal-modal-closed', handleRevealModalClosed)
       socket.off('voting-reset', handleRoomUpdate)
       socket.off('moderator-voting-toggled', handleRoomUpdateWithSession)
       socket.off('voting-values-updated', handleRoomUpdateWithSession)
