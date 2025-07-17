@@ -29,7 +29,9 @@ export const useSocket = (): SocketState => {
     }
 
     // Conectar socket
-    const socketInstance = io('http://localhost:3000')
+    const socketInstance = io(process.env.NODE_ENV === 'production' ? undefined : 'http://localhost:3000', {
+      path: '/api/socket',
+    })
 
     socketInstance.on('connect', () => {
       console.log('Connected to server')

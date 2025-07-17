@@ -184,3 +184,17 @@ src/
 3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
+
+## Despliegue en Vercel
+
+Esta aplicación está optimizada para desplegarse en Vercel:
+
+1. **Conectar repositorio**: Conecta tu repositorio de GitHub a Vercel
+2. **Configuración automática**: Vercel detectará automáticamente Next.js
+3. **Socket.IO optimizado**: Configurado para funcionar con Vercel Functions
+4. **Despliegue automático**: Se despliega automáticamente en cada push
+
+### Archivos de configuración para Vercel:
+- `vercel.json` - Configuración de routing y functions
+- `package.json` - Scripts optimizados para Vercel
+- Socket.IO configurado como API Route en `/pages/api/socket.ts`
