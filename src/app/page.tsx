@@ -9,6 +9,7 @@ import PokerRoom from '../components/PokerRoom'
 
 export default function Home() {
   const { socket, isConnected, sessionData, shouldAutoReconnect, clearAutoReconnect } = useSocket()
+  console.log('Socket state:', { socket, isConnected, sessionData, shouldAutoReconnect })
   const {
     room,
     currentUser,
