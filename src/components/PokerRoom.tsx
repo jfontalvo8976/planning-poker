@@ -36,6 +36,17 @@ export default function PokerRoomComponent({
   onEndRoom,
 }: PokerRoomComponentProps) {
 
+  // Debug logging
+  console.log('🎯 [PokerRoom] Render state:', {
+    roomId,
+    currentUser,
+    showVotes: room.showVotes,
+    isRevealing: room.isRevealing,
+    isVotingComplete: room.isVotingComplete,
+    votesCount: Object.keys(room.votes).length,
+    votes: room.votes
+  })
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden transition-all duration-500">
       {/* Background decoration */}
@@ -74,15 +85,15 @@ export default function PokerRoomComponent({
           </div>
         )}
 
-        {/* Voting Results */}
-        {room.showVotes && (
+        {/* Voting Results - Mostrar cuando los votos están revelados Y no hay animación de revelado */}
+        {room.showVotes && !room.isRevealing && (
           <div className="animate-slide-up" style={{animationDelay: '0.2s'}}>
             <VotingStats room={room} />
           </div>
         )}
 
-        {/* Voting Cards */}
-        {!room.showVotes && (
+        {/* Voting Cards - Mostrar cuando no están revelados los votos O no hay animación */}
+        {!room.showVotes && !room.isRevealing && (
           <div className="animate-slide-up" style={{animationDelay: '0.2s'}}>
             <VotingCards
               room={room}

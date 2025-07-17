@@ -11,6 +11,8 @@ export interface SessionData {
   isModerator: boolean
   roomName: string
   votingValues: string[]
+  showVotes: boolean
+  isVotingComplete: boolean
   timestamp: string
 }
 
@@ -65,6 +67,8 @@ export const saveCompleteSession = (roomData: PokerRoom, userName: string, roomI
     isModerator: roomData.moderators.includes(user.id),
     roomName: roomData.name,
     votingValues: roomData.votingValues,
+    showVotes: roomData.showVotes,
+    isVotingComplete: roomData.isVotingComplete,
     timestamp: new Date().toISOString()
   }
   

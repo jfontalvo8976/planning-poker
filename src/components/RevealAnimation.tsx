@@ -166,8 +166,11 @@ export default function RevealAnimation({ isRevealing, onComplete, votingValues,
                 : 'Las cartas han sido reveladas con éxito'
               }
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 mb-4">
               Revisa los resultados y el análisis detallado 📊
+            </div>
+            <div className="text-xs text-gray-500 animate-pulse">
+              Cerrando automáticamente en unos segundos...
             </div>
           </div>
         )}

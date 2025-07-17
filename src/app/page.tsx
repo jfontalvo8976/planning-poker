@@ -111,7 +111,8 @@ export default function Home() {
     )
   }
 
-  if (shouldAutoReconnect || (sessionData && !room)) {
+  // Mostrar pantalla de reconexión solo si shouldAutoReconnect está activo
+  if (shouldAutoReconnect) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 transition-all duration-500">
         <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-8 text-center max-w-md mx-auto animate-scale-in hover-lift">
@@ -119,10 +120,10 @@ export default function Home() {
             <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full"></div>
           </div>
           <h2 className="text-xl font-semibold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2 animate-slide-in-left">
-            {shouldAutoReconnect ? 'Reconectando...' : 'Conectando a tu sala...'}
+            Reconectando...
           </h2>
           <p className="text-gray-600 dark:text-gray-300 mb-4 animate-fade-in">
-            {shouldAutoReconnect ? 'Restaurando tu sesión anterior' : 'Cargando sala guardada'}
+            Restaurando tu sesión anterior
             {sessionData && (
               <span className="block text-sm bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-medium mt-2 animate-slide-in-up">
                 Sala: {sessionData.roomName} | Usuario: {sessionData.userName}
@@ -159,6 +160,15 @@ export default function Home() {
                 <span className="text-gray-700 dark:text-gray-300 font-medium">Observador</span>
               </div>
             </div>
+          </div>
+          
+          <div className="mb-4">
+            <button
+              onClick={clearAutoReconnect}
+              className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer transform hover:scale-105"
+            >
+              Cancelar reconexión
+            </button>
           </div>
           
           <div className="text-xs text-gray-500 dark:text-gray-400 animate-pulse">

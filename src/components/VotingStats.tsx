@@ -8,13 +8,32 @@ interface VotingStatsProps {
 }
 
 export default function VotingStats({ room }: VotingStatsProps) {
-  if (!room.showVotes) return null
-
+  // Debug logging
+  console.log('📊 [VotingStats] Component state:', {
+    showVotes: room.showVotes,
+    isVotingComplete: room.isVotingComplete,
+    votesCount: Object.keys(room.votes).length,
+    votes: room.votes,
+    allVotes: Object.values(room.votes)
+  })
+  
+  // Solo verificar si hay votos válidos, no el estado showVotes
+  // El control de visibilidad se maneja desde el componente padre (PokerRoom)
   const votes = Object.values(room.votes).map(v => v.value).filter(v => v !== null && v !== '?')
-  if (votes.length === 0) return null
+  console.log('📊 [VotingStats] Processed votes:', votes)
+  
+  if (votes.length === 0) {
+    console.log('📊 [VotingStats] No valid votes found, returning null')
+    return null
+  }
 
   const numericVotes = votes.map(v => parseFloat(v as string)).filter(v => !isNaN(v))
-  if (numericVotes.length === 0) return null
+  console.log('📊 [VotingStats] Numeric votes:', numericVotes)
+  
+  if (numericVotes.length === 0) {
+    console.log('📊 [VotingStats] No numeric votes found, returning null')
+    return null
+  }
 
   const sortedVotes = numericVotes.sort((a, b) => a - b)
   const avg = numericVotes.reduce((a, b) => a + b, 0) / numericVotes.length
@@ -43,17 +62,17 @@ export default function VotingStats({ room }: VotingStatsProps) {
     .sort(([a], [b]) => parseFloat(a) - parseFloat(b))
 
   return (
-    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-6 lg:p-8 mb-8">
+    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-6 lg:p-8 mb-8 animate-slide-up">
       <div className="flex items-center mb-6">
-        <div className="bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 p-3 rounded-xl shadow-lg mr-4">
+        <div className="bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 p-3 rounded-xl shadow-lg mr-4 animate-pulse">
           <BarChart3 className="w-6 h-6 text-white drop-shadow-lg" />
         </div>
         <div>
-          <h2 className="text-2xl lg:text-3xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Análisis de Resultados
-          </h2>
-          <p className="text-gray-600 dark:text-gray-300 font-semibold mt-1">
-            Estadísticas detalladas de la votación 📊
+          <h3 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            📊 Análisis de Resultados
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Estadísticas completas de la votación
           </p>
         </div>
       </div>

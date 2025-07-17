@@ -127,8 +127,9 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
       })
 
       // Rejoinear a una sala (reconexión)
-      socket.on('rejoin-room', (data: { roomId: string; userName: string }) => {
+      socket.on('rejoin-room', (data: { roomId: string; userName: string; sessionShowVotes?: boolean; sessionIsVotingComplete?: boolean }) => {
         console.log(`🔄 Rejoin attempt: ${data.userName} to room ${data.roomId}`)
+        console.log(`📊 Session showVotes: ${data.sessionShowVotes}, isVotingComplete: ${data.sessionIsVotingComplete}`)
         
         const room = pokersRooms[data.roomId]
         if (!room) {
@@ -137,27 +138,110 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
           return
         }
 
-        // Verificar si el usuario ya existe en la sala
-        const existingUserIndex = room.users.findIndex(u => u.name === data.userName)
+        // Verificar si los votos deberían estar revelados basado en session data o estado actual
+        const votingUsers = room.users.filter(u => u.canVote && !u.id.startsWith('disconnected_'))
+        const activeVotes = Object.keys(room.votes).filter(voteId => !voteId.startsWith('disconnected_'))
+        const hasVotes = activeVotes.length > 0
+        
+        // CRITICAL LOGIC: Prioridad para restaurar showVotes
+        console.log(`📊 Rejoin logic check: hasVotes=${hasVotes}, sessionShowVotes=${data.sessionShowVotes}, sessionIsVotingComplete=${data.sessionIsVotingComplete}`)
+        
+        // REGLA FUNDAMENTAL: Si hay votos Y había votación completa, SIEMPRE mostrar votos
+        if (hasVotes && (room.isVotingComplete || data.sessionIsVotingComplete)) {
+          room.showVotes = true
+          room.isVotingComplete = true
+          console.log(`📊 FUNDAMENTAL RULE: Votes exist and voting was/is complete - FORCING showVotes=true`)
+        }
+        // Si el usuario tenía showVotes=true en su sesión, restaurar ese estado
+        else if (data.sessionShowVotes && data.sessionIsVotingComplete) {
+          room.showVotes = true
+          room.isVotingComplete = true
+          console.log(`📊 RESTORED votes state from session - user had showVotes=true`)
+        }
+        // Auto-reveal si todos han votado
+        else if (hasVotes && votingUsers.length > 0 && activeVotes.length === votingUsers.length) {
+          room.showVotes = true
+          room.isVotingComplete = true
+          console.log(`📊 Auto-revealing votes - all users have voted`)
+        }
+
+        // Verificar si el usuario ya existe en la sala (incluir desconectados)
+        let existingUserIndex = room.users.findIndex(u => u.name === data.userName)
         
         if (existingUserIndex !== -1) {
           // Usuario existe, actualizar su socket ID
           const existingUser = room.users[existingUserIndex]
           const oldSocketId = existingUser.id
+          const wasDisconnected = oldSocketId.startsWith('disconnected_')
+          
+          // Verificar si era el creador antes de cambiar el socket ID
+          const wasCreator = room.creatorId === oldSocketId || room.creatorId.includes(oldSocketId.split('_')[1]) || 
+                           (wasDisconnected && room.users.find(u => u.name === data.userName && room.creatorId.includes(u.id)))
+          const wasModerator = room.moderators.includes(oldSocketId) || 
+                              room.moderators.some(modId => modId.includes(oldSocketId.split('_')[1]))
           
           // Actualizar el socket ID
           existingUser.id = socket.id
           
-          // Si había un voto con el socket ID anterior, actualízarlo
+          // Si era el creador, actualizar el creatorId
+          if (wasCreator || (wasDisconnected && room.creatorId.includes(oldSocketId.split('_')[1]))) {
+            room.creatorId = socket.id
+            existingUser.role = 'moderator' // Asegurar que el creador tenga rol de moderador
+            console.log(`✅ CREATOR ${data.userName} reconnected, creatorId updated to ${socket.id}`)
+          }
+          
+          // Si era moderador, actualizar la lista de moderadores
+          if (wasModerator) {
+            room.moderators = room.moderators.filter(id => !id.includes(oldSocketId) && id !== oldSocketId)
+            room.moderators.push(socket.id)
+            console.log(`✅ Moderator ${data.userName} reconnected, moderator list updated`)
+          }
+          
+          // Si había un voto con el socket ID anterior, actualízalo
           if (room.votes[oldSocketId]) {
             room.votes[socket.id] = { ...room.votes[oldSocketId], userId: socket.id }
             delete room.votes[oldSocketId]
+            console.log(`📊 Restored vote for ${data.userName}: ${room.votes[socket.id].value}`)
+          } else {
+            // Buscar voto por nombre de usuario como fallback para reconexiones completas
+            const existingVoteEntry = Object.entries(room.votes).find(([voteSocketId, vote]) => {
+              const voteUser = room.users.find(u => u.id === vote.userId)
+              return voteUser && voteUser.name === data.userName
+            })
+            
+            if (existingVoteEntry) {
+              const [oldVoteSocketId, userVote] = existingVoteEntry
+              room.votes[socket.id] = { ...userVote, userId: socket.id }
+              delete room.votes[oldVoteSocketId]
+              console.log(`📊 Restored vote by username for ${data.userName}: ${room.votes[socket.id].value}`)
+            }
           }
           
           socket.join(data.roomId)
-          console.log(`✅ User ${data.userName} rejoined room ${data.roomId} with new socket ID`)
+          console.log(`✅ User ${data.userName} rejoined room ${data.roomId} with new socket ID. Creator: ${wasCreator}, Moderator: ${wasModerator}, WasDisconnected: ${wasDisconnected}`)
           
-          socket.emit('room-rejoined', { room, isReconnection: true, isCreator: room.creatorId === socket.id })
+          // Verificar si todos los usuarios activos han votado y revelar automáticamente
+          const activeUsers = room.users.filter(u => u.canVote && !u.id.startsWith('disconnected_'))
+          const activeVotes = Object.keys(room.votes).filter(voteId => !voteId.startsWith('disconnected_'))
+          
+          if (activeUsers.length > 0 && activeVotes.length === activeUsers.length && !room.showVotes) {
+            room.showVotes = true
+            room.isVotingComplete = true
+            console.log(`🎯 Auto-revealing votes on rejoin - all ${activeUsers.length} users have voted`)
+          }
+          
+          socket.emit('room-rejoined', { 
+            room, 
+            isReconnection: true, 
+            isCreator: room.creatorId === socket.id,
+            debugInfo: {
+              hasVotes: Object.keys(room.votes).length > 0,
+              showVotes: room.showVotes,
+              isVotingComplete: room.isVotingComplete,
+              sessionData: { showVotes: data.sessionShowVotes, isVotingComplete: data.sessionIsVotingComplete }
+            }
+          })
+          console.log(`📤 Sent room-rejoined event with showVotes=${room.showVotes}, isVotingComplete=${room.isVotingComplete}`)
           socket.to(data.roomId).emit('user-rejoined', { user: existingUser, room })
         } else {
           // Usuario no existe, crear nuevo usuario
@@ -173,7 +257,34 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
 
           console.log(`✅ New user ${data.userName} joined room ${data.roomId} via rejoin`)
           
-          socket.emit('room-rejoined', { room, isReconnection: false })
+          // Verificar si todos los usuarios activos han votado y revelar automáticamente
+          const activeUsers = room.users.filter(u => u.canVote && !u.id.startsWith('disconnected_'))
+          const activeVotes = Object.keys(room.votes).filter(voteId => !voteId.startsWith('disconnected_'))
+          
+          if (activeUsers.length > 0 && activeVotes.length >= activeUsers.length - 1 && !room.showVotes && !data.sessionShowVotes) {
+            // Si todos menos el que acaba de llegar han votado, mostrar los votos
+            room.showVotes = true
+            room.isVotingComplete = true
+            console.log(`🎯 Auto-revealing votes for new user - voting was already complete`)
+          }
+          // Si el nuevo usuario tiene sesión con showVotes=true, asegurar que se mantenga
+          else if (data.sessionShowVotes && data.sessionIsVotingComplete) {
+            room.showVotes = true
+            room.isVotingComplete = true
+            console.log(`📊 Ensuring votes remain revealed for new user with session data`)
+          }
+          
+          socket.emit('room-rejoined', { 
+            room, 
+            isReconnection: false,
+            debugInfo: {
+              hasVotes: Object.keys(room.votes).length > 0,
+              showVotes: room.showVotes,
+              isVotingComplete: room.isVotingComplete,
+              sessionData: { showVotes: data.sessionShowVotes, isVotingComplete: data.sessionIsVotingComplete }
+            }
+          })
+          console.log(`📤 Sent room-rejoined event for new user with showVotes=${room.showVotes}, isVotingComplete=${room.isVotingComplete}`)
           socket.to(data.roomId).emit('user-joined', { user, room })
         }
       })
@@ -189,10 +300,23 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
           return
         }
 
+        const user = room.users.find(u => u.id === socket.id)
+        if (!user) {
+          console.log(`❌ User not found in room for vote`)
+          socket.emit('room-error', { message: 'User not found' })
+          return
+        }
+
+        if (!user.canVote) {
+          console.log(`❌ User ${user.name} cannot vote`)
+          socket.emit('room-error', { message: 'Cannot vote' })
+          return
+        }
+
         // Registrar el voto
-        room.votes[socket.id] = { value: data.value, userId: socket.id, hasVoted: true }
+        room.votes[socket.id] = { value: data.value, userId: socket.id, hasVoted: true, userName: user.name }
         
-        console.log(`✅ Vote registered: ${data.value} by ${socket.id}`)
+        console.log(`✅ Vote registered: ${data.value} by ${user.name} (${socket.id})`)
         console.log(`📊 Current votes in room ${data.roomId}:`, Object.keys(room.votes).length)
         
         // Verificar si todos han votado
@@ -238,11 +362,18 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
         }, 4000) // 4 segundos para que la animación complete
       })
 
-      // Resetear votación
+      // Resetear votación (solo moderadores y creador)
       socket.on('reset-voting', (data: { roomId: string }) => {
         const room = pokersRooms[data.roomId]
         if (!room) {
           socket.emit('room-error', { message: 'Room not found' })
+          return
+        }
+
+        const user = room.users.find(u => u.id === socket.id)
+        if (!user || (!room.moderators.includes(user.id) && room.creatorId !== user.id)) {
+          socket.emit('room-error', { message: 'Not authorized to reset voting' })
+          console.log(`❌ Unauthorized reset attempt by ${user?.name || 'unknown'} (${socket.id}) in room ${data.roomId}`)
           return
         }
 
@@ -251,8 +382,152 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
         room.showVotes = false
         room.isRevealing = false
 
-        console.log(`Voting reset in room: ${data.roomId}`)
+        console.log(`Voting reset in room: ${data.roomId} by ${user.name} (${user.role})`)
         io.to(data.roomId).emit('voting-reset', { room })
+      })
+
+      // Toggle moderador puede votar
+      socket.on('toggle-moderator-voting', (data: { roomId: string }) => {
+        const room = pokersRooms[data.roomId]
+        if (!room) {
+          socket.emit('room-error', { message: 'Room not found' })
+          return
+        }
+
+        const user = room.users.find(u => u.id === socket.id)
+        if (!user || (!room.moderators.includes(user.id) && room.creatorId !== user.id)) {
+          socket.emit('room-error', { message: 'Not authorized' })
+          return
+        }
+
+        // Cambiar el estado de canVote del moderador
+        user.canVote = !user.canVote
+        
+        // Si deja de poder votar, eliminar su voto
+        if (!user.canVote && room.votes[user.id]) {
+          delete room.votes[user.id]
+        }
+
+        console.log(`Moderator ${user.name} voting toggled to: ${user.canVote} in room: ${data.roomId}`)
+        io.to(data.roomId).emit('moderator-voting-toggled', { room })
+      })
+
+      // Actualizar valores de votación
+      socket.on('update-voting-values', (data: { roomId: string; values: string[] }) => {
+        const room = pokersRooms[data.roomId]
+        if (!room) {
+          socket.emit('room-error', { message: 'Room not found' })
+          return
+        }
+
+        const user = room.users.find(u => u.id === socket.id)
+        if (!user || (!room.moderators.includes(user.id) && room.creatorId !== user.id)) {
+          socket.emit('room-error', { message: 'Not authorized' })
+          return
+        }
+
+        room.votingValues = data.values
+        
+        // Limpiar votos existentes al cambiar valores
+        room.votes = {}
+        room.isVotingComplete = false
+        room.showVotes = false
+
+        console.log(`Voting values updated in room: ${data.roomId}`, data.values)
+        io.to(data.roomId).emit('voting-values-updated', { room })
+      })
+
+      // Promover a moderador
+      socket.on('promote-to-moderator', (data: { roomId: string; userId: string }) => {
+        const room = pokersRooms[data.roomId]
+        if (!room) {
+          socket.emit('room-error', { message: 'Room not found' })
+          return
+        }
+
+        const requester = room.users.find(u => u.id === socket.id)
+        if (!requester || room.creatorId !== requester.id) {
+          socket.emit('room-error', { message: 'Only creator can promote moderators' })
+          return
+        }
+
+        const userToPromote = room.users.find(u => u.id === data.userId)
+        if (!userToPromote) {
+          socket.emit('room-error', { message: 'User not found' })
+          return
+        }
+
+        if (room.moderators.includes(data.userId)) {
+          socket.emit('room-error', { message: 'User is already a moderator' })
+          return
+        }
+
+        // Promover a moderador
+        room.moderators.push(data.userId)
+        userToPromote.role = 'moderator'
+
+        console.log(`User ${userToPromote.name} promoted to moderator in room: ${data.roomId}`)
+        io.to(data.roomId).emit('user-promoted', { room, promotedUserId: data.userId })
+      })
+
+      // Degradar de moderador
+      socket.on('demote-from-moderator', (data: { roomId: string; userId: string }) => {
+        const room = pokersRooms[data.roomId]
+        if (!room) {
+          socket.emit('room-error', { message: 'Room not found' })
+          return
+        }
+
+        const requester = room.users.find(u => u.id === socket.id)
+        if (!requester || room.creatorId !== requester.id) {
+          socket.emit('room-error', { message: 'Only creator can demote moderators' })
+          return
+        }
+
+        if (data.userId === room.creatorId) {
+          socket.emit('room-error', { message: 'Cannot demote the creator' })
+          return
+        }
+
+        const userToDemote = room.users.find(u => u.id === data.userId)
+        if (!userToDemote) {
+          socket.emit('room-error', { message: 'User not found' })
+          return
+        }
+
+        // Quitar de moderadores
+        room.moderators = room.moderators.filter(id => id !== data.userId)
+        userToDemote.role = 'participant'
+
+        console.log(`User ${userToDemote.name} demoted from moderator in room: ${data.roomId}`)
+        io.to(data.roomId).emit('user-demoted', { room, demotedUserId: data.userId })
+      })
+
+      // Terminar sala
+      socket.on('end-room', (data: { roomId: string }) => {
+        const room = pokersRooms[data.roomId]
+        if (!room) {
+          socket.emit('room-error', { message: 'Room not found' })
+          return
+        }
+
+        const requester = room.users.find(u => u.id === socket.id)
+        if (!requester || room.creatorId !== requester.id) {
+          socket.emit('room-error', { message: 'Only creator can end the room' })
+          return
+        }
+
+        console.log(`Room ${data.roomId} ended by creator`)
+        
+        // Notificar a todos los usuarios antes de eliminar la sala
+        io.to(data.roomId).emit('room-ended', { 
+          roomId: data.roomId, 
+          roomName: room.name,
+          message: 'La sala ha sido cerrada por el creador'
+        })
+        
+        // Eliminar la sala
+        delete pokersRooms[data.roomId]
       })
 
       // Manejar desconexión
@@ -265,21 +540,37 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
           const userIndex = room.users.findIndex(u => u.id === socket.id)
           
           if (userIndex !== -1) {
-            room.users.splice(userIndex, 1)
+            const disconnectedUser = room.users[userIndex]
+            
+            // Si es el creador, no eliminar completamente sino marcar como desconectado
+            if (room.creatorId === socket.id) {
+              console.log(`🔑 Creator ${disconnectedUser.name} disconnected from room ${roomId}, preserving user data`)
+              // Marcar como desconectado pero mantener en la lista para reconexión
+              disconnectedUser.id = `disconnected_${socket.id}_${Date.now()}`
+            } else {
+              // Para usuarios normales, eliminar de la lista
+              room.users.splice(userIndex, 1)
+              // Remover de moderadores si era moderador
+              room.moderators = room.moderators.filter(id => id !== socket.id)
+            }
+            
+            // Eliminar votos del usuario desconectado
             delete room.votes[socket.id]
             
-            // Si la sala está vacía, eliminarla después de 5 minutos
-            if (room.users.length === 0) {
+            // Si la sala está vacía (sin usuarios conectados), eliminarla después de 1 hora
+            const connectedUsers = room.users.filter(u => !u.id.startsWith('disconnected_'))
+            if (connectedUsers.length === 0) {
               setTimeout(() => {
-                if (pokersRooms[roomId] && pokersRooms[roomId].users.length === 0) {
+                if (pokersRooms[roomId] && pokersRooms[roomId].users.filter(u => !u.id.startsWith('disconnected_')).length === 0) {
                   delete pokersRooms[roomId]
-                  console.log(`Room ${roomId} deleted due to inactivity`)
+                  console.log(`Room ${roomId} deleted due to inactivity (1 hour)`)
                 }
-              }, 5 * 60 * 1000)
+              }, 60 * 60 * 1000) // 1 hora
             } else {
               // Notificar a otros usuarios
               socket.to(roomId).emit('user-left', { 
                 userId: socket.id, 
+                userName: disconnectedUser.name,
                 room: pokersRooms[roomId] 
               })
             }

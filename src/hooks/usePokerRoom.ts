@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Socket } from 'socket.io-client'
 import { PokerRoom } from '../lib/socket'
-import { saveCompleteSession, clearSession, SessionData } from '../utils/sessionStorage'
+import { saveCompleteSession, clearSession, SessionData, getValidSession } from '../utils/sessionStorage'
 import { clearUrlQueries } from '../utils/urlUtils'
 
 export interface PokerRoomState {
@@ -49,44 +49,77 @@ export const usePokerRoom = (
         console.log('Attempting auto-reconnection...')
         setCurrentUser(savedUserName)
         setRoomId(savedRoomId)
-        socket.emit('rejoin-room', { roomId: savedRoomId, userName: savedUserName })
         
-        // Limpiar la bandera de auto-reconexión después de un tiempo
-        setTimeout(() => {
+        // Incluir datos de sesión en la auto-reconexión
+        const rejoinData = {
+          roomId: savedRoomId,
+          userName: savedUserName,
+          sessionShowVotes: sessionData.showVotes || false,
+          sessionIsVotingComplete: sessionData.isVotingComplete || false
+        }
+        
+        console.log(`📊 Auto-reconnecting with session data:`, rejoinData)
+        socket.emit('rejoin-room', rejoinData)
+        
+        // Timeout de seguridad más corto - si no hay respuesta en 5 segundos, marcar como fallido
+        const timeoutId = setTimeout(() => {
+          console.log('⚠️ Auto-reconnection timeout - marking as failed')
           setIsAutoReconnecting(false)
+          setReconnectionFailed(true)
           clearAutoReconnect()
-        }, 5000)
+        }, 5000) // 5 segundos timeout
+        
+        // Limpiar timeout si se logra reconectar antes
+        return () => {
+          clearTimeout(timeoutId)
+        }
       }
     }
   }, [socket, socket?.connected, shouldAutoReconnect, sessionData, isAutoReconnecting, room, clearAutoReconnect])
 
-  // Efecto adicional para reconexión inmediata cuando no hay room pero sí sesión
+  // Efecto para restaurar showVotes inmediatamente si hay sesión válida
   useEffect(() => {
-    if (socket && socket.connected && sessionData && !room && !isAutoReconnecting && !shouldAutoReconnect) {
-      console.log('Immediate reconnection attempt with session data:', sessionData)
-      setIsAutoReconnecting(true)
+    console.log('🔍 [usePokerRoom] Checking session restoration:', {
+      hasRoom: !!room,
+      hasSessionData: !!sessionData,
+      sessionShowVotes: sessionData?.showVotes,
+      sessionIsVotingComplete: sessionData?.isVotingComplete,
+      roomShowVotes: room?.showVotes,
+      roomId,
+      currentUser
+    })
+    
+    if (room && sessionData && sessionData.showVotes && sessionData.isVotingComplete && !room.showVotes) {
+      console.log('📊 [usePokerRoom] Restoring showVotes state immediately from session storage')
+      // Crear una copia de la sala con el estado restaurado
+      const updatedRoom = {
+        ...room,
+        showVotes: true,
+        isVotingComplete: true
+      }
+      setRoom(updatedRoom)
       
-      const { roomId: savedRoomId, userName: savedUserName } = sessionData
-      
-      if (savedRoomId && savedUserName) {
-        console.log('Starting immediate reconnection...')
-        setCurrentUser(savedUserName)
-        setRoomId(savedRoomId)
-        socket.emit('rejoin-room', { roomId: savedRoomId, userName: savedUserName })
-        
-        setTimeout(() => {
-          setIsAutoReconnecting(false)
-        }, 5000)
+      // Guardar inmediatamente para sincronizar
+      if (roomId && currentUser) {
+        saveCompleteSession(updatedRoom, currentUser, roomId)
       }
     }
-  }, [socket, socket?.connected, sessionData, room, isAutoReconnecting, shouldAutoReconnect])
+  }, [room, sessionData, roomId, currentUser])
 
-  // Guardar sesión cuando se une o crea una sala
+  // Efecto para verificar sesión al montar el componente y restaurar estado inmediatamente
+  useEffect(() => {
+    if (!room && sessionData && sessionData.showVotes) {
+      console.log('📊 Session indicates votes were revealed, will ensure state is restored on reconnection')
+    }
+  }, []) // Solo al montar
+
+  // Guardar sesión cuando se une o crea una sala, y también cuando cambia showVotes
   useEffect(() => {
     if (roomId && currentUser && room) {
+      console.log('💾 Saving session - showVotes:', room.showVotes, 'isVotingComplete:', room.isVotingComplete)
       saveCompleteSession(room, currentUser, roomId)
     }
-  }, [roomId, currentUser, room])
+  }, [roomId, currentUser, room, room?.showVotes, room?.isVotingComplete]) // Agregar dependencias adicionales
 
   // Socket event listeners
   useEffect(() => {
@@ -97,7 +130,9 @@ export const usePokerRoom = (
       setRoom(data.room)
       setRoomId(data.roomId)
       
+      // Guardar inmediatamente la sesión del creador
       if (currentUser) {
+        console.log('Saving creator session:', { roomId: data.roomId, currentUser, room: data.room })
         saveCompleteSession(data.room, currentUser, data.roomId)
       }
     }
@@ -138,11 +173,21 @@ export const usePokerRoom = (
     const handleRoomUpdate = (data: { room: PokerRoom }) => {
       console.log('🔄 Room update received:', data.room.id)
       setRoom(data.room)
+      
+      // Actualizar sesión cuando hay cambios importantes en showVotes
+      if (roomId && currentUser) {
+        saveCompleteSession(data.room, currentUser, roomId)
+      }
     }
 
     const handleVoteCast = (data: { room: PokerRoom; votes: Record<string, any>; isComplete: boolean }) => {
       console.log('📊 Vote cast update received:', data.room.id, 'votes:', Object.keys(data.votes).length)
       setRoom(data.room)
+      
+      // Actualizar sesión cuando los votos cambian
+      if (roomId && currentUser) {
+        saveCompleteSession(data.room, currentUser, roomId)
+      }
     }
 
     const handleRoomUpdateWithSession = (data: { room: PokerRoom }) => {
@@ -153,20 +198,61 @@ export const usePokerRoom = (
       }
     }
 
-    const handleRoomRejoined = (data: { room: PokerRoom; isReconnection: boolean; isCreator?: boolean }) => {
+    const handleRoomRejoined = (data: { 
+      room: PokerRoom; 
+      isReconnection: boolean; 
+      isCreator?: boolean;
+      debugInfo?: {
+        hasVotes: boolean;
+        showVotes: boolean;
+        isVotingComplete: boolean;
+        sessionData: { showVotes?: boolean; isVotingComplete?: boolean };
+      }
+    }) => {
       console.log('Successfully rejoined room:', data.room.id)
-      setRoom(data.room)
+      console.log('📊 Debug info from server:', data.debugInfo)
+      console.log('User role after rejoin:', {
+        isCreator: data.isCreator,
+        creatorId: data.room.creatorId,
+        currentUser,
+        userInRoom: data.room.users.find(u => u.name === currentUser)
+      })
+      
+      // The server now handles showVotes restoration based on session data we sent
+      console.log('📊 Room rejoined with showVotes:', data.room.showVotes, 'isVotingComplete:', data.room.isVotingComplete)
+      
+      // CRITICAL FIX: Force restore showVotes from session if it should be revealed
+      let finalRoom = data.room
+      if (sessionData && sessionData.showVotes && sessionData.isVotingComplete) {
+        console.log('🔧 FORCING showVotes restoration from session data')
+        finalRoom = {
+          ...data.room,
+          showVotes: true,
+          isVotingComplete: true
+        }
+      }
+      // También forzar si hay votos y la votación debería estar completa
+      else if (Object.keys(data.room.votes).length > 0 && data.room.isVotingComplete && !data.room.showVotes) {
+        console.log('🔧 FORCING showVotes restoration - voting was complete with votes')
+        finalRoom = {
+          ...data.room,
+          showVotes: true
+        }
+      }
+      
+      setRoom(finalRoom)
       setIsAutoReconnecting(false) // Detener el proceso de reconexión
+      setReconnectionFailed(false) // Limpiar cualquier estado de fallo anterior
       
       if (roomId && currentUser) {
-        saveCompleteSession(data.room, currentUser, roomId)
+        saveCompleteSession(finalRoom, currentUser, roomId)
       }
       
       if (data.isReconnection) {
-        console.log('Successfully reconnected to room')
+        console.log('Successfully reconnected to room as:', data.isCreator ? 'CREATOR' : 'participant/moderator')
       }
       
-      // Limpiar la bandera de auto-reconexión
+      // Limpiar la bandera de auto-reconexión - reconexión exitosa
       clearAutoReconnect()
     }
 
@@ -191,8 +277,11 @@ export const usePokerRoom = (
       // Limpiar parámetros de la URL
       clearUrlQueries()
       
-      // Mostrar notificación al usuario (opcional)
+      // Mostrar notificación al usuario
       alert(`${data.message}: ${data.roomName}`)
+      
+      // Redirigir automáticamente a la página principal para crear una nueva sala
+      window.location.href = '/'
     }
 
     const handleRevealModalClosed = (data: { room: PokerRoom }) => {
@@ -261,9 +350,26 @@ export const usePokerRoom = (
   const rejoinRoom = (roomId: string, userName: string) => {
     if (socket) {
       console.log(`Attempting to rejoin room: ${roomId} with user: ${userName}`)
+      
+      // Verificar si el usuario en sessionStorage era el creador
+      const sessionData = getValidSession()
+      if (sessionData && sessionData.isCreator) {
+        console.log(`🔑 Rejoining as CREATOR: ${userName} to room ${roomId}`)
+      }
+      
+      // Enviar datos de sesión para restaurar showVotes
+      const rejoinData = {
+        roomId,
+        userName,
+        sessionShowVotes: sessionData?.showVotes || false,
+        sessionIsVotingComplete: sessionData?.isVotingComplete || false
+      }
+      
+      console.log(`📊 Rejoining with session data:`, rejoinData)
+      
       setCurrentUser(userName)
       setRoomId(roomId)
-      socket.emit('rejoin-room', { roomId, userName })
+      socket.emit('rejoin-room', rejoinData)
     }
   }
 

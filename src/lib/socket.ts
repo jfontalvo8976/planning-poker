@@ -22,6 +22,7 @@ export interface Vote {
   userId: string
   value: string | null
   hasVoted: boolean
+  userName?: string // Agregar nombre de usuario para mejor rastreo de votos
 }
 
 export interface PokerRoom {
