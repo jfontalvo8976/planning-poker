@@ -1,0 +1,12 @@
+# Archivos ignorados en Render
+.git
+.env.local
+.env.*.local
+README.md
+RENDER_DEPLOY.md
+*.md
+.vscode
+.idea
+.DS_Store
+*.log
+.vercel

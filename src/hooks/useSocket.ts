@@ -29,7 +29,7 @@ export const useSocket = (): SocketState => {
       setShouldAutoReconnect(true)
     }
 
-    // Configuración optimizada para conexión rápida y estable
+    // Configuración optimizada para Render y desarrollo
     const socketInstance = io({
       path: '/socket.io',
       transports: ['polling', 'websocket'],
@@ -39,8 +39,12 @@ export const useSocket = (): SocketState => {
       timeout: 5000,
       reconnection: true,
       reconnectionDelay: 500,
-      reconnectionAttempts: 5,
-      autoConnect: true
+      reconnectionDelayMax: 2000,
+      reconnectionAttempts: 10,
+      autoConnect: true,
+      // Configuración específica para Render
+      withCredentials: false,
+      secure: process.env.NODE_ENV === 'production'
     })
 
     console.log('🔌 Socket.IO client created, waiting for connection...')

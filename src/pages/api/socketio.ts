@@ -34,8 +34,8 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
     // Retornar error específico para debugging
     return res.status(503).json({ 
       error: 'Socket.IO not supported in Vercel serverless environment',
-      message: 'This planning poker app requires a persistent server. Please use a different hosting platform or run locally.',
-      suggestion: 'Consider deploying to Railway, Render, or another platform that supports persistent connections.'
+      message: 'This app has been moved to Render for better Socket.IO support.',
+      suggestion: 'Please visit the Render deployment for full functionality.'
     })
   }
 
@@ -46,7 +46,9 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
       path: '/socket.io',
       addTrailingSlash: false,
       cors: {
-        origin: "*",
+        origin: process.env.NODE_ENV === 'production' 
+          ? ["https://*.onrender.com", "https://your-app.onrender.com"] 
+          : "*",
         methods: ["GET", "POST"],
         credentials: false
       },
@@ -55,7 +57,12 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
       pingTimeout: 60000,
       pingInterval: 25000,
       upgradeTimeout: 30000,
-      maxHttpBufferSize: 1e6
+      maxHttpBufferSize: 1e6,
+      // Configuraciones específicas para Render
+      connectionStateRecovery: {
+        maxDisconnectionDuration: 2 * 60 * 1000,
+        skipMiddlewares: true,
+      }
     })
     
     res.socket.server.io = io

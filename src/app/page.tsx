@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useSocket } from '../hooks/useSocket-final'
+import { useSocket } from '../hooks/useSocket'
 import { usePokerRoom } from '../hooks/usePokerRoom'
 import { getUrlQuery } from '../utils/urlUtils'
 import JoinCreateRoom from '../components/JoinCreateRoom'

@@ -2,6 +2,17 @@
 
 Una aplicación de Planning Poker en tiempo real construida con Next.js, Socket.io y Tailwind CSS. Permite a los equipos estimar tareas de forma colaborativa con actualizaciones en tiempo real.
 
+## 🚀 Deploy en Render (Recomendado)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com)
+
+Esta aplicación está optimizada para **Render** debido a su excelente soporte para Socket.IO y conexiones persistentes. Ver [RENDER_DEPLOY.md](./RENDER_DEPLOY.md) para instrucciones detalladas.
+
+**Configuración rápida en Render:**
+- Build Command: `npm install && npm run build`
+- Start Command: `npm start`
+- Environment: Node.js
+
 ## Características
 
 - ✅ Salas de Planning Poker en tiempo real
