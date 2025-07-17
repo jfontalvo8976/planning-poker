@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { NextApiResponseServerIO, pokersRooms, PokerRoom, User, getDefaultVotingValues } from '../../lib/socket'
 
 export default function SocketHandler(req: NextApiRequest, res: NextApiResponseServerIO) {
-  console.log('Socket API called, method:', req.method)
+  console.log('Socket API called, method:', req.method, 'query:', req.query)
   
   // Manejar preflight requests
   if (req.method === 'OPTIONS') {
@@ -17,9 +17,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
   }
 
   if (res.socket.server.io) {
-    console.log('Socket is already running')
-    res.end()
-    return
+    console.log('Socket is already running - delegating to engine.io')
   } else {
     console.log('Socket is initializing')
     const io = new ServerIO(res.socket.server, {
@@ -312,5 +310,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
       })
     })
   }
-  res.end()
+  
+  // ¡NO terminar la respuesta aquí! Socket.IO necesita manejar la request
+  // res.end() // <- Esta línea estaba causando el problema
 }

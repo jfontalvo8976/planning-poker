@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/socket.io/:path*',
-        destination: '/api/socket',
+        destination: '/api/socketio',
       },
     ];
   },
