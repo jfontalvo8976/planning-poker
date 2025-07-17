@@ -6,9 +6,20 @@ import { NextApiResponseServerIO, pokersRooms, PokerRoom, User, getDefaultVoting
 export default function SocketHandler(req: NextApiRequest, res: NextApiResponseServerIO) {
   if (res.socket.server.io) {
     console.log('Socket is already running')
+    res.end()
+    return
   } else {
     console.log('Socket is initializing')
-    const io = new ServerIO(res.socket.server)
+    const io = new ServerIO(res.socket.server, {
+      path: '/api/socket',
+      addTrailingSlash: false,
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+      },
+      transports: ['websocket', 'polling'],
+      allowEIO3: true
+    })
     res.socket.server.io = io
 
     io.on('connection', (socket) => {

@@ -41,12 +41,42 @@ Vercel detectará automáticamente:
 
 ## 🧪 Testing Post-Despliegue
 
-Una vez desplegado, prueba:
+Una vez desplegado, prueba en orden:
+
+### 1. Verificar conexión Socket.IO:
+- Abre la consola del navegador (F12)
+- Busca mensajes como: `✅ Connected to server successfully`
+- Si ves `🔥 Connection error:`, hay un problema de conexión
+
+### 2. Debugging común:
+- **Error de path**: Verifica que aparezca "Connecting to: [URL] with path: /api/socket"
+- **Reconnection loops**: Normal en Vercel, debe estabilizarse en ~30 segundos
+- **Polling fallback**: Si WebSocket falla, debería usar polling automáticamente
+
+### 3. Flujo de testing:
 1. **Crear una sala** → Verificar Socket.IO
-2. **Unirse con otro dispositivo** → Verificar tiempo real
-3. **Compartir enlace** → Verificar routing
-4. **Interfaz móvil** → Verificar responsive design
-5. **Nav fixed** → Verificar que no hay delays
+2. **Abrir en incógnito/otro navegador** → Verificar tiempo real
+3. **Unirse con otro dispositivo** → Verificar sincronización
+4. **Compartir enlace** → Verificar routing
+5. **Interfaz móvil** → Verificar responsive design
+6. **Nav fixed** → Verificar que no hay delays
+
+## 🔧 Troubleshooting en Producción
+
+### Problema: "No se conecta a la sala"
+**Síntomas**: La página carga pero no hay conexión Socket.IO
+
+**Soluciones**:
+1. **Verificar logs**: Abre consola del navegador para ver errores
+2. **Reintenta conexión**: Recarga la página 2-3 veces
+3. **Vercel cold start**: Primera conexión puede tardar ~10-15 segundos
+4. **Fallback a polling**: Si WebSocket falla, debería usar polling
+
+### Configuración específica para Vercel:
+- ✅ Transports: ['polling', 'websocket'] - polling primero
+- ✅ Reconnection: habilitada con 5 intentos
+- ✅ CORS: configurado para todo origen
+- ✅ Path: '/api/socket' en producción
 
 ## 📱 URL Final
 
