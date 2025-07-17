@@ -136,6 +136,12 @@ export const usePokerRoom = (
     }
 
     const handleRoomUpdate = (data: { room: PokerRoom }) => {
+      console.log('🔄 Room update received:', data.room.id)
+      setRoom(data.room)
+    }
+
+    const handleVoteCast = (data: { room: PokerRoom; votes: Record<string, any>; isComplete: boolean }) => {
+      console.log('📊 Vote cast update received:', data.room.id, 'votes:', Object.keys(data.votes).length)
       setRoom(data.room)
     }
 
@@ -196,6 +202,7 @@ export const usePokerRoom = (
     socket.on('user-joined', handleRoomUpdate)
     socket.on('user-left', handleRoomUpdate)
     socket.on('vote-updated', handleRoomUpdate)
+    socket.on('vote-cast', handleVoteCast)
     socket.on('votes-revealed', handleRoomUpdate)
     socket.on('reveal-started', handleRoomUpdate)
     socket.on('voting-reset', handleRoomUpdate)
@@ -214,6 +221,7 @@ export const usePokerRoom = (
       socket.off('user-joined', handleRoomUpdate)
       socket.off('user-left', handleRoomUpdate)
       socket.off('vote-updated', handleRoomUpdate)
+      socket.off('vote-cast', handleVoteCast)
       socket.off('votes-revealed', handleRoomUpdate)
       socket.off('reveal-started', handleRoomUpdate)
       socket.off('voting-reset', handleRoomUpdate)
@@ -254,7 +262,10 @@ export const usePokerRoom = (
 
   const vote = (value: string) => {
     if (socket && roomId) {
+      console.log(`🗳️ Sending vote: ${value} to room ${roomId}`)
       socket.emit('vote', { roomId, value })
+    } else {
+      console.error('❌ Cannot vote: socket or roomId missing', { socket: !!socket, roomId })
     }
   }
 

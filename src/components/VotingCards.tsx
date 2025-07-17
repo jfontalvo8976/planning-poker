@@ -13,6 +13,13 @@ export default function VotingCards({ room, currentUser, onVote }: VotingCardsPr
   const canVote = currentUserData?.canVote
   const userVote = currentUserData ? room.votes[currentUserData.id] : null
 
+  console.log(`🎯 VotingCards render - User: ${currentUser}, UserData:`, currentUserData, 'Vote:', userVote, 'All votes:', room.votes)
+
+  const handleVote = (value: string) => {
+    console.log(`🗳️ Voting: ${value} by user ${currentUser} (ID: ${currentUserData?.id})`)
+    onVote(value)
+  }
+
   if (!canVote) {
     return (
       <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/30 p-6 sm:p-8 animate-slide-up hover-lift">
@@ -49,7 +56,7 @@ export default function VotingCards({ room, currentUser, onVote }: VotingCardsPr
         {room.votingValues.map((value, index) => (
           <button
             key={value}
-            onClick={() => onVote(value)}
+            onClick={() => handleVote(value)}
             className={`
               voting-card w-14 h-24 p-2 rounded-xl border-2 font-bold text-base sm:text-lg transition-all duration-300 cursor-pointer hover-scale flex items-center justify-center
               ${userVote?.value === value

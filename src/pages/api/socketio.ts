@@ -126,9 +126,61 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
         socket.to(data.roomId).emit('user-joined', { user, room })
       })
 
+      // Rejoinear a una sala (reconexión)
+      socket.on('rejoin-room', (data: { roomId: string; userName: string }) => {
+        console.log(`🔄 Rejoin attempt: ${data.userName} to room ${data.roomId}`)
+        
+        const room = pokersRooms[data.roomId]
+        if (!room) {
+          console.log(`❌ Room not found for rejoin: ${data.roomId}`)
+          socket.emit('room-not-found')
+          return
+        }
+
+        // Verificar si el usuario ya existe en la sala
+        const existingUserIndex = room.users.findIndex(u => u.name === data.userName)
+        
+        if (existingUserIndex !== -1) {
+          // Usuario existe, actualizar su socket ID
+          const existingUser = room.users[existingUserIndex]
+          const oldSocketId = existingUser.id
+          
+          // Actualizar el socket ID
+          existingUser.id = socket.id
+          
+          // Si había un voto con el socket ID anterior, actualízarlo
+          if (room.votes[oldSocketId]) {
+            room.votes[socket.id] = { ...room.votes[oldSocketId], userId: socket.id }
+            delete room.votes[oldSocketId]
+          }
+          
+          socket.join(data.roomId)
+          console.log(`✅ User ${data.userName} rejoined room ${data.roomId} with new socket ID`)
+          
+          socket.emit('room-rejoined', { room, isReconnection: true, isCreator: room.creatorId === socket.id })
+          socket.to(data.roomId).emit('user-rejoined', { user: existingUser, room })
+        } else {
+          // Usuario no existe, crear nuevo usuario
+          const user: User = {
+            id: socket.id,
+            name: data.userName,
+            role: 'participant',
+            canVote: true
+          }
+
+          room.users.push(user)
+          socket.join(data.roomId)
+
+          console.log(`✅ New user ${data.userName} joined room ${data.roomId} via rejoin`)
+          
+          socket.emit('room-rejoined', { room, isReconnection: false })
+          socket.to(data.roomId).emit('user-joined', { user, room })
+        }
+      })
+
       // Votar
-      socket.on('vote', (data: { roomId: string; vote: string }) => {
-        console.log(`📝 Vote received: ${data.vote} in room ${data.roomId} from ${socket.id}`)
+      socket.on('vote', (data: { roomId: string; value: string }) => {
+        console.log(`📝 Vote received: ${data.value} in room ${data.roomId} from ${socket.id}`)
         
         const room = pokersRooms[data.roomId]
         if (!room) {
@@ -138,9 +190,9 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
         }
 
         // Registrar el voto
-        room.votes[socket.id] = { value: data.vote, userId: socket.id, hasVoted: true }
+        room.votes[socket.id] = { value: data.value, userId: socket.id, hasVoted: true }
         
-        console.log(`✅ Vote registered: ${data.vote} by ${socket.id}`)
+        console.log(`✅ Vote registered: ${data.value} by ${socket.id}`)
         console.log(`📊 Current votes in room ${data.roomId}:`, Object.keys(room.votes).length)
         
         // Verificar si todos han votado
@@ -159,7 +211,7 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
         io.to(data.roomId).emit('vote-cast', { room, votes: room.votes, isComplete: room.isVotingComplete })
         
         // También emitir al votante para confirmar
-        socket.emit('vote-confirmed', { vote: data.vote, room })
+        socket.emit('vote-confirmed', { vote: data.value, room })
       })
 
       // Revelar votos

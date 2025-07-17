@@ -14,6 +14,8 @@ export default function UserList({ room, currentUser, onPromoteToModerator, onDe
   const currentUserData = room.users.find(u => u.name === currentUser)
   const isCreator = currentUserData && room.creatorId === currentUserData.id
 
+  console.log(`👥 UserList render - Users: ${room.users.length}, Votes:`, room.votes, 'ShowVotes:', room.showVotes)
+
   const getUserVote = (userId: string): Vote | undefined => {
     return room.votes[userId]
   }
