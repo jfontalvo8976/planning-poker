@@ -4,6 +4,16 @@ import { v4 as uuidv4 } from 'uuid'
 import { NextApiResponseServerIO, pokersRooms, PokerRoom, User, getDefaultVotingValues } from '../../lib/socket'
 
 export default function SocketHandler(req: NextApiRequest, res: NextApiResponseServerIO) {
+  // Manejar preflight requests
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-socket-id')
+    res.setHeader('Access-Control-Allow-Credentials', 'false')
+    res.status(200).end()
+    return
+  }
+
   if (res.socket.server.io) {
     console.log('Socket is already running')
     res.end()
@@ -14,16 +24,36 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseS
       path: '/api/socket',
       addTrailingSlash: false,
       cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+        origin: process.env.NODE_ENV === 'production' 
+          ? ["https://*.vercel.app", "https://your-domain.com"] // Ajustar con tu dominio
+          : ["http://localhost:3000"],
+        methods: ["GET", "POST"],
+        credentials: false
       },
-      transports: ['websocket', 'polling'],
-      allowEIO3: true
+      transports: ['polling', 'websocket'], // Polling first for Vercel
+      allowEIO3: true,
+      pingTimeout: 30000,
+      pingInterval: 10000,
+      connectTimeout: 20000,
+      upgradeTimeout: 10000,
+      // Configuración específica para serverless
+      maxHttpBufferSize: 1e6, // 1MB
+      httpCompression: true,
+      perMessageDeflate: false
     })
     res.socket.server.io = io
 
+    // Log de inicialización exitosa
+    console.log('✅ Socket.IO server initialized successfully')
+    
+    // Agregar timeout para serverless functions
+    const serverlessTimeout = setTimeout(() => {
+      console.log('⏰ Serverless function timeout warning')
+    }, 25000) // 25 segundos (antes del timeout de 30s)
+
     io.on('connection', (socket) => {
-      console.log('New client connected')
+      console.log('New client connected:', socket.id)
+      clearTimeout(serverlessTimeout) // Clear timeout cuando hay conexión activa
 
       // Crear una sala
       socket.on('create-room', (data: { userName: string; roomName: string }) => {

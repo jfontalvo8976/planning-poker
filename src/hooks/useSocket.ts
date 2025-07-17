@@ -28,52 +28,101 @@ export const useSocket = (): SocketState => {
       setShouldAutoReconnect(true)
     }
 
-    // Conectar socket
-    let socketUrl = 'http://localhost:3000'
-    let socketPath = '/socket.io'
+    // Conectar socket con configuración correcta para Vercel
+    let socketUrl: string
+    let socketPath: string
     
     if (process.env.NODE_ENV === 'production') {
       socketUrl = window.location.origin
-      socketPath = '/api/socket'
+      socketPath = '/socket.io'  // Vercel redirects this to /api/socket
+    } else {
+      socketUrl = 'http://localhost:3000'
+      socketPath = '/socket.io'
     }
     
-    console.log('Connecting to:', socketUrl, 'with path:', socketPath)
+    console.log('🔌 Connecting to:', socketUrl, 'with path:', socketPath)
     
-    const socketInstance = io(socketUrl, {
+    // Configuración optimizada para Vercel serverless
+    const socketConfig = {
       path: socketPath,
-      transports: ['polling', 'websocket'],
+      transports: process.env.NODE_ENV === 'production' 
+        ? ['polling', 'websocket']  // Polling first for Vercel compatibility
+        : ['websocket', 'polling'],
       upgrade: true,
       timeout: 20000,
-      forceNew: false,
+      forceNew: true,
       autoConnect: true,
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5
-    })
+      reconnectionDelay: 2000,
+      reconnectionAttempts: 5,
+      withCredentials: false
+    }
 
-    socketInstance.on('connect', () => {
-      console.log('✅ Connected to server successfully')
-      setIsConnected(true)
-    })
+    let socketInstance = io(socketUrl, socketConfig)
 
-    socketInstance.on('disconnect', (reason) => {
-      console.log('❌ Disconnected from server:', reason)
-      setIsConnected(false)
-    })
+    let connectionAttempts = 0
+    const maxAttempts = 3
 
-    socketInstance.on('connect_error', (error) => {
-      console.error('🔥 Connection error:', error)
-      setIsConnected(false)
-    })
+    const tryConnection = () => {
+      connectionAttempts++
+      console.log(`🔌 Connection attempt ${connectionAttempts}/${maxAttempts}`)
+      
+      if (connectionAttempts > maxAttempts) {
+        console.error('❌ Max connection attempts reached')
+        return
+      }
 
-    socketInstance.on('reconnect', (attemptNumber) => {
-      console.log('🔄 Reconnected after', attemptNumber, 'attempts')
-      setIsConnected(true)
-    })
+      // En caso de error, solo intentar reconectar si no se ha conectado
+      if (connectionAttempts > 1 && !socketInstance.connected) {
+        console.log('🔄 Retrying connection...')
+        socketInstance.connect()
+      }
+    }
 
-    socketInstance.on('reconnect_error', (error) => {
-      console.error('🔄❌ Reconnection failed:', error)
-    })
+    const setupSocketListeners = (socket: any) => {
+      socket.on('connect', () => {
+        console.log('✅ Connected to server successfully')
+        console.log('✅ Transport:', socket.io.engine.transport.name)
+        connectionAttempts = 0 // Reset counter on successful connection
+        setIsConnected(true)
+      })
+
+      socket.on('disconnect', (reason: string) => {
+        console.log('❌ Disconnected from server:', reason)
+        setIsConnected(false)
+      })
+
+      socket.on('connect_error', (error: any) => {
+        console.error('🔥 Connection error:', error)
+        console.error('🔥 Error type:', error.type)
+        console.error('🔥 Error description:', error.description)
+        setIsConnected(false)
+        
+        // Solo intentar reconexión si no hemos superado max attempts
+        if (connectionAttempts < maxAttempts) {
+          console.log('🔄 Will retry connection...')
+          setTimeout(tryConnection, 2000)
+        }
+      })
+
+      socket.on('reconnect', (attemptNumber: number) => {
+        console.log('🔄 Reconnected after', attemptNumber, 'attempts')
+        console.log('🔄 Transport:', socket.io.engine.transport.name)
+        setIsConnected(true)
+      })
+
+      socket.on('reconnect_error', (error: any) => {
+        console.error('🔄❌ Reconnection failed:', error)
+      })
+
+      // Listener para upgrade de transport
+      socket.io.on('upgrade', () => {
+        console.log('⬆️ Upgraded to transport:', socket.io.engine.transport.name)
+      })
+    }
+
+    // Setup initial listeners
+    setupSocketListeners(socketInstance)
 
     setSocket(socketInstance)
 
