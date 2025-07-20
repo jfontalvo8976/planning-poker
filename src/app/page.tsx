@@ -18,6 +18,7 @@ export default function Home() {
     currentUser,
     roomId,
     reconnectionFailed,
+    usernameError,
     createRoom,
     joinRoom,
     vote,
@@ -29,6 +30,7 @@ export default function Home() {
     demoteFromModerator,
     endRoom,
     clearReconnectionFailed,
+    clearUsernameError,
   } = usePokerRoom(socket, sessionData, shouldAutoReconnect, clearAutoReconnect)
 
   useEffect(() => {
@@ -88,7 +90,9 @@ export default function Home() {
             <button
               onClick={() => {
                 if (sessionData.roomId && sessionData.userName) {
-                  joinRoom(sessionData.roomId, sessionData.userName, 'participant')
+                  // CORREGIDO: Usar el rol guardado en la sesión, pero filtrar solo participant/spectator
+                  const userRole = (sessionData.userRole === 'spectator') ? 'spectator' : 'participant'
+                  joinRoom(sessionData.roomId, sessionData.userName, userRole)
                 }
               }}
               className="w-full bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-600 hover:from-indigo-600 hover:via-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer transform hover:scale-105"
@@ -185,6 +189,8 @@ export default function Home() {
       onJoinRoom={(roomId, userName, role) => joinRoom(roomId, userName, role)}
       isConnected={isConnected}
       sessionData={sessionData}
+      usernameError={usernameError}
+      onClearUsernameError={clearUsernameError}
     />
   )
 }

@@ -14,6 +14,7 @@ export interface SessionData {
   showVotes: boolean
   isVotingComplete: boolean
   timestamp: string
+  userVote?: string | null // Agregar voto del usuario actual
 }
 
 // Constantes
@@ -58,6 +59,9 @@ export const saveCompleteSession = (roomData: PokerRoom, userName: string, roomI
   const user = roomData.users.find(u => u.name === userName)
   if (!user) return
   
+  // Buscar el voto del usuario actual
+  const userVote = Object.values(roomData.votes).find(vote => vote.userId === user.id)?.value || null
+  
   const sessionData: SessionData = {
     roomId,
     userName,
@@ -69,7 +73,8 @@ export const saveCompleteSession = (roomData: PokerRoom, userName: string, roomI
     votingValues: roomData.votingValues,
     showVotes: roomData.showVotes,
     isVotingComplete: roomData.isVotingComplete,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    userVote: userVote // Guardar el voto del usuario
   }
   
   localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData))

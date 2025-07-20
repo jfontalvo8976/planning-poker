@@ -30,8 +30,22 @@ export default function ModeratorPanel({
   const isCreator = currentUserData && room.creatorId === currentUserData.id
   const isModerator = currentUserData && (
     room.creatorId === currentUserData.id || 
-    room.moderators.includes(currentUserData.id)
+    room.moderators.includes(currentUserData.id) ||
+    currentUserData.role === 'moderator' // NUEVO: También verificar por rol
   )
+
+  // DEBUG: Log para diagnosticar problemas de permisos
+  console.log('🔍 [ModeratorPanel] Permission check:', {
+    currentUser,
+    currentUserData,
+    currentUserId: currentUserData?.id,
+    currentUserRole: currentUserData?.role,
+    roomCreatorId: room.creatorId,
+    roomModerators: room.moderators,
+    isCreator,
+    isModerator,
+    shouldShowPanel: !!isModerator
+  })
 
   const handleUpdateVotingValues = () => {
     const values = customValues

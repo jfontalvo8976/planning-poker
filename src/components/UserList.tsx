@@ -63,7 +63,7 @@ export default function UserList({ room, currentUser, onPromoteToModerator, onDe
         </div>
       )
     }
-    if (room.moderators.includes(user.id)) {
+    if (room.moderators.includes(user.id) || user.role === 'moderator') {
       return (
         <div className="bg-gradient-to-br from-emerald-400 to-teal-500 p-1 rounded-full shadow-md">
           <Star className="w-3 h-3 text-white drop-shadow-sm" />
@@ -86,7 +86,7 @@ export default function UserList({ room, currentUser, onPromoteToModerator, onDe
 
   const getRoleText = (user: User) => {
     if (room.creatorId === user.id) return 'Creador'
-    if (room.moderators.includes(user.id)) return 'Moderador'
+    if (room.moderators.includes(user.id) || user.role === 'moderator') return 'Moderador'
     if (user.role === 'spectator') return 'Espectador'
     return 'Participante'
   }
@@ -95,14 +95,15 @@ export default function UserList({ room, currentUser, onPromoteToModerator, onDe
     const result = isCreator && 
                    room.creatorId !== user.id && 
                    !room.moderators.includes(user.id) &&
-                   user.role !== 'spectator'
+                   user.role !== 'spectator' &&
+                   user.role !== 'moderator' // NUEVO: También verificar por rol
     return result
   }
 
   const canDemoteUser = (user: User) => {
     const result = isCreator && 
                    room.creatorId !== user.id && 
-                   room.moderators.includes(user.id)
+                   (room.moderators.includes(user.id) || user.role === 'moderator') // MEJORADO: Verificar ambos
     console.log(`Can demote ${user.name}:`, result, 'isCreator:', isCreator, 'moderators:', room.moderators, 'userId:', user.id)
     return result
   }

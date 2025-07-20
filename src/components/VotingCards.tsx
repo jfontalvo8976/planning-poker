@@ -14,13 +14,15 @@ export default function VotingCards({ room, currentUser, onVote }: VotingCardsPr
   const userVote = currentUserData ? room.votes[currentUserData.id] : null
 
   console.log(`🎯 VotingCards render - User: ${currentUser}, UserData:`, currentUserData, 'Vote:', userVote, 'All votes:', room.votes)
+  console.log(`🎯 VotingCards - canVote: ${canVote}, userRole: ${currentUserData?.role}, isSpectator: ${currentUserData?.role === 'spectator'}`)
 
   const handleVote = (value: string) => {
     console.log(`🗳️ Voting: ${value} by user ${currentUser} (ID: ${currentUserData?.id})`)
     onVote(value)
   }
 
-  if (!canVote) {
+  if (!canVote || currentUserData?.role === 'spectator') {
+    console.log(`🎯 VotingCards - Showing spectator mode. canVote: ${canVote}, role: ${currentUserData?.role}`)
     return (
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 sm:p-8 animate-slide-up hover-lift">
         <h3 className="text-xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-6 flex items-center gap-3">

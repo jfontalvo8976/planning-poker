@@ -18,7 +18,10 @@ export default function RoomHeader({ room, roomId, currentUser, onEndRoom }: Roo
   
   const currentUserData = room.users.find(u => u.name === currentUser)
   const isCreator = currentUserData && room.creatorId === currentUserData.id
-  const isModerator = currentUserData && room.moderators.includes(currentUserData.id)
+  const isModerator = currentUserData && (
+    room.moderators.includes(currentUserData.id) ||
+    currentUserData.role === 'moderator' // NUEVO: También verificar por rol
+  )
 
   const roomUrl = `${window.location.origin}?room=${roomId}`
 
@@ -45,7 +48,7 @@ export default function RoomHeader({ room, roomId, currentUser, onEndRoom }: Roo
   return (
     <>
       {/* Navigation Header */}
-      <nav className="sticky-nav bg-white/30 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg">
+      <nav className="sticky-nav bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 lg:h-20">
             

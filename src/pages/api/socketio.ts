@@ -103,33 +103,56 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
       })
 
       // Unirse a una sala
-      socket.on('join-room', (data: { roomId: string; userName: string }) => {
+      socket.on('join-room', (data: { roomId: string; userName: string; role?: 'participant' | 'spectator' }) => {
+        console.log('🎯 [SERVER] join-room received:', data)
+        
         const room = pokersRooms[data.roomId]
         if (!room) {
           socket.emit('room-error', { message: 'Room not found' })
           return
         }
 
+        // NUEVO: Verificar si el nombre ya existe en la sala
+        const existingUser = room.users.find(u => u.name.toLowerCase() === data.userName.toLowerCase())
+        console.log('🔍 [SERVER] Checking for existing user:', {
+          searchingFor: data.userName.toLowerCase(),
+          existingUsers: room.users.map(u => u.name.toLowerCase()),
+          existingUser: existingUser?.name,
+          isDuplicate: !!existingUser
+        })
+        
+        if (existingUser) {
+          console.log(`❌ Username ${data.userName} already exists in room ${data.roomId}`)
+          socket.emit('username-taken', { message: 'Este nombre ya está en uso en la sala' })
+          return
+        }
+
+        // Usar el rol enviado o 'participant' por defecto
+        const userRole = data.role || 'participant'
+        const canVote = userRole === 'participant' // Solo los participantes pueden votar
+
+        console.log('🎯 [SERVER] Creating user with:', { userRole, canVote })
+
         const user: User = {
           id: socket.id,
           name: data.userName,
-          role: 'participant',
-          canVote: true
+          role: userRole,
+          canVote: canVote
         }
 
         room.users.push(user)
         socket.join(data.roomId)
 
-        console.log(`${data.userName} joined room: ${data.roomId}`)
+        console.log(`${data.userName} joined room: ${data.roomId} as ${userRole} (canVote: ${canVote})`)
         
         socket.emit('room-joined', { room, user })
         socket.to(data.roomId).emit('user-joined', { user, room })
       })
 
       // Rejoinear a una sala (reconexión)
-      socket.on('rejoin-room', (data: { roomId: string; userName: string; sessionShowVotes?: boolean; sessionIsVotingComplete?: boolean }) => {
+      socket.on('rejoin-room', (data: { roomId: string; userName: string; sessionShowVotes?: boolean; sessionIsVotingComplete?: boolean; sessionUserVote?: string | null; sessionIsModerator?: boolean; sessionIsCreator?: boolean; sessionUserRole?: 'participant' | 'spectator' | 'moderator'; sessionCanVote?: boolean }) => {
         console.log(`🔄 Rejoin attempt: ${data.userName} to room ${data.roomId}`)
-        console.log(`📊 Session showVotes: ${data.sessionShowVotes}, isVotingComplete: ${data.sessionIsVotingComplete}`)
+        console.log(`📊 Session data - showVotes: ${data.sessionShowVotes}, isVotingComplete: ${data.sessionIsVotingComplete}, userVote: ${data.sessionUserVote}, isModerator: ${data.sessionIsModerator}, isCreator: ${data.sessionIsCreator}, userRole: ${data.sessionUserRole}, canVote: ${data.sessionCanVote}`)
         
         const room = pokersRooms[data.roomId]
         if (!room) {
@@ -143,26 +166,26 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
         const activeVotes = Object.keys(room.votes).filter(voteId => !voteId.startsWith('disconnected_'))
         const hasVotes = activeVotes.length > 0
         
-        // CRITICAL LOGIC: Prioridad para restaurar showVotes
+        // NUEVA LÓGICA: Solo restaurar showVotes si fue revelado MANUALMENTE por el moderador/creador
         console.log(`📊 Rejoin logic check: hasVotes=${hasVotes}, sessionShowVotes=${data.sessionShowVotes}, sessionIsVotingComplete=${data.sessionIsVotingComplete}`)
         
-        // REGLA FUNDAMENTAL: Si hay votos Y había votación completa, SIEMPRE mostrar votos
-        if (hasVotes && (room.isVotingComplete || data.sessionIsVotingComplete)) {
+        // REGLA CORREGIDA: Solo mostrar votos si fueron REVELADOS MANUALMENTE (no por auto-complete)
+        if (data.sessionShowVotes && data.sessionIsVotingComplete) {
           room.showVotes = true
           room.isVotingComplete = true
-          console.log(`📊 FUNDAMENTAL RULE: Votes exist and voting was/is complete - FORCING showVotes=true`)
+          console.log(`📊 RESTORED votes state from session - votes were MANUALLY revealed`)
         }
-        // Si el usuario tenía showVotes=true en su sesión, restaurar ese estado
-        else if (data.sessionShowVotes && data.sessionIsVotingComplete) {
-          room.showVotes = true
-          room.isVotingComplete = true
-          console.log(`📊 RESTORED votes state from session - user had showVotes=true`)
-        }
-        // Auto-reveal si todos han votado
-        else if (hasVotes && votingUsers.length > 0 && activeVotes.length === votingUsers.length) {
-          room.showVotes = true
-          room.isVotingComplete = true
-          console.log(`📊 Auto-revealing votes - all users have voted`)
+        // NO auto-revelar votos en reconexión - mantener estado de votación activa
+        else {
+          room.showVotes = false
+          // Mantener isVotingComplete si había votos pero NO los muestres automáticamente
+          if (hasVotes && votingUsers.length > 0 && activeVotes.length === votingUsers.length) {
+            room.isVotingComplete = true
+            console.log(`📊 Voting is complete but keeping votes HIDDEN - waiting for manual reveal`)
+          } else {
+            room.isVotingComplete = false
+          }
+          console.log(`📊 Keeping votes HIDDEN - users can continue voting until manual reveal`)
         }
 
         // Verificar si el usuario ya existe en la sala (incluir desconectados)
@@ -174,11 +197,13 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
           const oldSocketId = existingUser.id
           const wasDisconnected = oldSocketId.startsWith('disconnected_')
           
-          // Verificar si era el creador antes de cambiar el socket ID
+          // Verificar si era el creador antes de cambiar el socket ID (mejorado con datos de sesión)
           const wasCreator = room.creatorId === oldSocketId || room.creatorId.includes(oldSocketId.split('_')[1]) || 
-                           (wasDisconnected && room.users.find(u => u.name === data.userName && room.creatorId.includes(u.id)))
+                           (wasDisconnected && room.users.find(u => u.name === data.userName && room.creatorId.includes(u.id))) ||
+                           data.sessionIsCreator // NUEVO: usar datos de sesión
           const wasModerator = room.moderators.includes(oldSocketId) || 
-                              room.moderators.some(modId => modId.includes(oldSocketId.split('_')[1]))
+                              room.moderators.some(modId => modId.includes(oldSocketId.split('_')[1])) ||
+                              data.sessionIsModerator // NUEVO: usar datos de sesión
           
           // Actualizar el socket ID
           existingUser.id = socket.id
@@ -190,18 +215,19 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
             console.log(`✅ CREATOR ${data.userName} reconnected, creatorId updated to ${socket.id}`)
           }
           
-          // Si era moderador, actualizar la lista de moderadores
+          // Si era moderador, actualizar la lista de moderadores Y el rol
           if (wasModerator) {
             room.moderators = room.moderators.filter(id => !id.includes(oldSocketId) && id !== oldSocketId)
             room.moderators.push(socket.id)
-            console.log(`✅ Moderator ${data.userName} reconnected, moderator list updated`)
+            existingUser.role = 'moderator' // CRÍTICO: Asegurar que mantenga el rol de moderador
+            console.log(`✅ Moderator ${data.userName} reconnected, moderator list updated and role restored`)
           }
           
-          // Si había un voto con el socket ID anterior, actualízalo
+          // MEJORADO: Restaurar voto para CUALQUIER tipo de usuario
           if (room.votes[oldSocketId]) {
             room.votes[socket.id] = { ...room.votes[oldSocketId], userId: socket.id }
             delete room.votes[oldSocketId]
-            console.log(`📊 Restored vote for ${data.userName}: ${room.votes[socket.id].value}`)
+            console.log(`📊 [CREATOR/MODERATOR/PARTICIPANT] Restored vote for ${data.userName}: ${room.votes[socket.id].value}`)
           } else {
             // Buscar voto por nombre de usuario como fallback para reconexiones completas
             const existingVoteEntry = Object.entries(room.votes).find(([voteSocketId, vote]) => {
@@ -213,21 +239,39 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
               const [oldVoteSocketId, userVote] = existingVoteEntry
               room.votes[socket.id] = { ...userVote, userId: socket.id }
               delete room.votes[oldVoteSocketId]
-              console.log(`📊 Restored vote by username for ${data.userName}: ${room.votes[socket.id].value}`)
+              console.log(`📊 [USERNAME FALLBACK] Restored vote by username for ${data.userName}: ${room.votes[socket.id].value}`)
+            } else if (data.sessionUserVote) {
+              // CRÍTICO: Si no se encuentra voto pero hay uno en la sesión, restaurarlo PARA CUALQUIER USUARIO
+              room.votes[socket.id] = { 
+                userId: socket.id, 
+                value: data.sessionUserVote, 
+                hasVoted: true,
+                userName: data.userName
+              }
+              console.log(`📊 [SESSION RESTORE] Restored vote from session for ${data.userName} (${existingUser.role}): ${data.sessionUserVote}`)
             }
           }
           
           socket.join(data.roomId)
           console.log(`✅ User ${data.userName} rejoined room ${data.roomId} with new socket ID. Creator: ${wasCreator}, Moderator: ${wasModerator}, WasDisconnected: ${wasDisconnected}`)
           
-          // Verificar si todos los usuarios activos han votado y revelar automáticamente
+          // CORREGIDO: NO auto-revelar votos en reconexión
           const activeUsers = room.users.filter(u => u.canVote && !u.id.startsWith('disconnected_'))
           const activeVotes = Object.keys(room.votes).filter(voteId => !voteId.startsWith('disconnected_'))
           
-          if (activeUsers.length > 0 && activeVotes.length === activeUsers.length && !room.showVotes) {
+          // Solo mostrar votos si fueron REVELADOS MANUALMENTE (no por votación completa)
+          if (data.sessionShowVotes && data.sessionIsVotingComplete) {
             room.showVotes = true
             room.isVotingComplete = true
-            console.log(`🎯 Auto-revealing votes on rejoin - all ${activeUsers.length} users have voted`)
+            console.log(`📊 Maintaining MANUAL reveal state after reconnection`)
+          }
+          // Mantener estado interno pero NO mostrar votos automáticamente
+          else {
+            room.showVotes = false
+            if (activeUsers.length > 0 && activeVotes.length >= activeUsers.length) {
+              room.isVotingComplete = true
+              console.log(`📊 Voting complete but keeping votes HIDDEN until manual reveal`)
+            }
           }
           
           socket.emit('room-rejoined', { 
@@ -244,34 +288,52 @@ export default function SocketHandler(req: NextApiRequest, res: NextApiResponseW
           console.log(`📤 Sent room-rejoined event with showVotes=${room.showVotes}, isVotingComplete=${room.isVotingComplete}`)
           socket.to(data.roomId).emit('user-rejoined', { user: existingUser, room })
         } else {
-          // Usuario no existe, crear nuevo usuario
+          // Usuario no existe, crear nuevo usuario CON DATOS DE SESIÓN
+          const userRole = data.sessionUserRole || 'participant'
+          const canVote = data.sessionCanVote !== undefined ? data.sessionCanVote : (userRole === 'participant')
+          
           const user: User = {
             id: socket.id,
             name: data.userName,
-            role: 'participant',
-            canVote: true
+            role: userRole, // CORREGIDO: Usar rol de sesión
+            canVote: canVote // CORREGIDO: Usar canVote de sesión
           }
 
           room.users.push(user)
           socket.join(data.roomId)
 
-          console.log(`✅ New user ${data.userName} joined room ${data.roomId} via rejoin`)
+          console.log(`✅ New user ${data.userName} joined room ${data.roomId} via rejoin as ${userRole} (canVote: ${canVote})`)
           
-          // Verificar si todos los usuarios activos han votado y revelar automáticamente
+          // MEJORADO: Si el usuario tiene un voto en la sesión, restaurarlo (FUNCIONA PARA CUALQUIER USUARIO)
+          if (data.sessionUserVote) {
+            room.votes[socket.id] = { 
+              userId: socket.id, 
+              value: data.sessionUserVote, 
+              hasVoted: true,
+              userName: data.userName
+            }
+            console.log(`📊 [NEW USER SESSION RESTORE] Restored vote from session for new user ${data.userName}: ${data.sessionUserVote}`)
+          }
+          
+          // CORREGIDO: NO auto-revelar votos para usuarios nuevos
           const activeUsers = room.users.filter(u => u.canVote && !u.id.startsWith('disconnected_'))
           const activeVotes = Object.keys(room.votes).filter(voteId => !voteId.startsWith('disconnected_'))
           
-          if (activeUsers.length > 0 && activeVotes.length >= activeUsers.length - 1 && !room.showVotes && !data.sessionShowVotes) {
-            // Si todos menos el que acaba de llegar han votado, mostrar los votos
+          // Solo mostrar votos si fueron REVELADOS MANUALMENTE en la sesión del usuario
+          if (data.sessionShowVotes && data.sessionIsVotingComplete) {
             room.showVotes = true
             room.isVotingComplete = true
-            console.log(`🎯 Auto-revealing votes for new user - voting was already complete`)
+            console.log(`📊 Ensuring votes remain revealed for new user with MANUAL reveal session data`)
           }
-          // Si el nuevo usuario tiene sesión con showVotes=true, asegurar que se mantenga
-          else if (data.sessionShowVotes && data.sessionIsVotingComplete) {
-            room.showVotes = true
-            room.isVotingComplete = true
-            console.log(`📊 Ensuring votes remain revealed for new user with session data`)
+          // NO auto-revelar - mantener votación activa
+          else {
+            console.log(`📊 Keeping votes HIDDEN for new user - voting continues until manual reveal`)
+            room.showVotes = false
+            // Solo marcar como completo internamente si todos han votado, pero NO mostrar
+            if (activeUsers.length > 0 && activeVotes.length >= activeUsers.length) {
+              room.isVotingComplete = true
+              console.log(`📊 Voting complete internally but votes remain HIDDEN`)
+            }
           }
           
           socket.emit('room-rejoined', { 

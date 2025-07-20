@@ -11,6 +11,7 @@ export interface PokerRoomState {
   currentUser: string
   roomId: string
   reconnectionFailed: boolean
+  usernameError: string | null
   createRoom: (userName: string, roomName: string) => void
   joinRoom: (roomId: string, userName: string, role?: 'participant' | 'spectator') => void
   rejoinRoom: (roomId: string, userName: string) => void
@@ -23,6 +24,7 @@ export interface PokerRoomState {
   demoteFromModerator: (userId: string) => void
   endRoom: () => void
   clearReconnectionFailed: () => void
+  clearUsernameError: () => void
 }
 
 export const usePokerRoom = (
@@ -36,6 +38,7 @@ export const usePokerRoom = (
   const [roomId, setRoomId] = useState<string>('')
   const [isAutoReconnecting, setIsAutoReconnecting] = useState(false)
   const [reconnectionFailed, setReconnectionFailed] = useState(false)
+  const [usernameError, setUsernameError] = useState<string | null>(null)
 
   // Auto-reconexión basada en sessionData
   useEffect(() => {
@@ -55,7 +58,12 @@ export const usePokerRoom = (
           roomId: savedRoomId,
           userName: savedUserName,
           sessionShowVotes: sessionData.showVotes || false,
-          sessionIsVotingComplete: sessionData.isVotingComplete || false
+          sessionIsVotingComplete: sessionData.isVotingComplete || false,
+          sessionUserVote: sessionData.userVote || null, // Incluir voto del usuario
+          sessionIsModerator: sessionData.isModerator || false, // NUEVO: incluir estado de moderador
+          sessionIsCreator: sessionData.isCreator || false, // NUEVO: incluir estado de creador
+          sessionUserRole: sessionData.userRole || 'participant', // NUEVO: incluir rol del usuario
+          sessionCanVote: sessionData.userCanVote !== undefined ? sessionData.userCanVote : true // NUEVO: incluir canVote
         }
         
         console.log(`📊 Auto-reconnecting with session data:`, rejoinData)
@@ -79,19 +87,9 @@ export const usePokerRoom = (
 
   // Efecto para restaurar showVotes inmediatamente si hay sesión válida
   useEffect(() => {
-    console.log('🔍 [usePokerRoom] Checking session restoration:', {
-      hasRoom: !!room,
-      hasSessionData: !!sessionData,
-      sessionShowVotes: sessionData?.showVotes,
-      sessionIsVotingComplete: sessionData?.isVotingComplete,
-      roomShowVotes: room?.showVotes,
-      roomId,
-      currentUser
-    })
-    
     if (room && sessionData && sessionData.showVotes && sessionData.isVotingComplete && !room.showVotes) {
-      console.log('📊 [usePokerRoom] Restoring showVotes state immediately from session storage')
-      // Crear una copia de la sala con el estado restaurado
+      console.log('📊 [usePokerRoom] Restoring showVotes state from session storage - votes were MANUALLY revealed')
+      // Crear una copia de la sala con el estado restaurado SOLO si fue revelado manualmente
       const updatedRoom = {
         ...room,
         showVotes: true,
@@ -174,8 +172,20 @@ export const usePokerRoom = (
       console.log('🔄 Room update received:', data.room.id)
       setRoom(data.room)
       
-      // Actualizar sesión cuando hay cambios importantes en showVotes
+      // CRÍTICO: Guardar sesión en TODAS las actualizaciones para mantener persistencia
       if (roomId && currentUser) {
+        console.log('💾 Saving session on room update to preserve all state changes')
+        saveCompleteSession(data.room, currentUser, roomId)
+      }
+    }
+
+    const handleVotingReset = (data: { room: PokerRoom }) => {
+      console.log('🔄 Voting reset received:', data.room.id)
+      setRoom(data.room)
+      
+      // CRÍTICO: Actualizar sesión inmediatamente para reflejar el reset
+      if (roomId && currentUser) {
+        console.log('💾 [RESET] Updating session to reflect voting reset - showVotes=false')
         saveCompleteSession(data.room, currentUser, roomId)
       }
     }
@@ -184,8 +194,9 @@ export const usePokerRoom = (
       console.log('📊 Vote cast update received:', data.room.id, 'votes:', Object.keys(data.votes).length)
       setRoom(data.room)
       
-      // Actualizar sesión cuando los votos cambian
+      // Actualizar sesión inmediatamente cuando los votos cambian - CRÍTICO para persistencia
       if (roomId && currentUser) {
+        console.log('💾 Saving session immediately after vote cast to preserve vote state')
         saveCompleteSession(data.room, currentUser, roomId)
       }
     }
@@ -194,6 +205,23 @@ export const usePokerRoom = (
       console.log('Room update received:', data)
       setRoom(data.room)
       if (roomId && currentUser) {
+        saveCompleteSession(data.room, currentUser, roomId)
+      }
+    }
+
+    const handleUserPromoted = (data: { room: PokerRoom; promotedUserId: string }) => {
+      console.log('User promoted event received:', data.promotedUserId)
+      setRoom(data.room)
+      
+      // CRÍTICO: Si YO fui promovido, actualizar mi sesión inmediatamente
+      const currentUserData = data.room.users.find(u => u.name === currentUser)
+      if (currentUserData && currentUserData.id === data.promotedUserId) {
+        console.log(`🎉 [PROMOTION] I was promoted to moderator! Updating my session immediately`)
+        if (roomId && currentUser) {
+          saveCompleteSession(data.room, currentUser, roomId)
+        }
+      } else if (roomId && currentUser) {
+        // Para otros usuarios, solo actualizar la sesión normalmente
         saveCompleteSession(data.room, currentUser, roomId)
       }
     }
@@ -221,22 +249,22 @@ export const usePokerRoom = (
       // The server now handles showVotes restoration based on session data we sent
       console.log('📊 Room rejoined with showVotes:', data.room.showVotes, 'isVotingComplete:', data.room.isVotingComplete)
       
-      // CRITICAL FIX: Force restore showVotes from session if it should be revealed
+      // CRITICAL FIX: Solo forzar showVotes si fue REVELADO MANUALMENTE
       let finalRoom = data.room
       if (sessionData && sessionData.showVotes && sessionData.isVotingComplete) {
-        console.log('🔧 FORCING showVotes restoration from session data')
+        console.log('🔧 FORCING showVotes restoration from session data - votes were MANUALLY revealed')
         finalRoom = {
           ...data.room,
           showVotes: true,
           isVotingComplete: true
         }
       }
-      // También forzar si hay votos y la votación debería estar completa
-      else if (Object.keys(data.room.votes).length > 0 && data.room.isVotingComplete && !data.room.showVotes) {
-        console.log('🔧 FORCING showVotes restoration - voting was complete with votes')
+      // NO forzar auto-reveal - mantener estado de votación activa
+      else {
+        console.log('🔧 MAINTAINING voting state - votes NOT manually revealed, keeping VotingCards visible')
         finalRoom = {
           ...data.room,
-          showVotes: true
+          showVotes: false // Asegurar que se mantengan las cartas de votación
         }
       }
       
@@ -259,7 +287,16 @@ export const usePokerRoom = (
     const handleUserDemoted = (data: { room: PokerRoom; demotedUserId: string }) => {
       console.log('User demoted event received:', data.demotedUserId)
       setRoom(data.room)
-      if (roomId && currentUser) {
+      
+      // CRÍTICO: Si YO fui degradado, actualizar mi sesión inmediatamente
+      const currentUserData = data.room.users.find(u => u.name === currentUser)
+      if (currentUserData && currentUserData.id === data.demotedUserId) {
+        console.log(`📉 [DEMOTION] I was demoted from moderator! Updating my session immediately`)
+        if (roomId && currentUser) {
+          saveCompleteSession(data.room, currentUser, roomId)
+        }
+      } else if (roomId && currentUser) {
+        // Para otros usuarios, solo actualizar la sesión normalmente
         saveCompleteSession(data.room, currentUser, roomId)
       }
     }
@@ -289,10 +326,16 @@ export const usePokerRoom = (
       setRoom(data.room)
     }
 
+    const handleUsernameTaken = (data: { message: string }) => {
+      console.log('❌ Username taken:', data.message)
+      setUsernameError(data.message)
+    }
+
     // Event listeners
     socket.on('room-created', handleRoomCreated)
     socket.on('room-joined', handleRoomJoined)
     socket.on('room-not-found', handleRoomNotFound)
+    socket.on('username-taken', handleUsernameTaken)
     socket.on('user-joined', handleRoomUpdate)
     socket.on('user-left', handleRoomUpdate)
     socket.on('vote-updated', handleRoomUpdate)
@@ -300,10 +343,10 @@ export const usePokerRoom = (
     socket.on('votes-revealed', handleRoomUpdate)
     socket.on('reveal-started', handleRoomUpdate)
     socket.on('reveal-modal-closed', handleRevealModalClosed)
-    socket.on('voting-reset', handleRoomUpdate)
+    socket.on('voting-reset', handleVotingReset)
     socket.on('moderator-voting-toggled', handleRoomUpdateWithSession)
     socket.on('voting-values-updated', handleRoomUpdateWithSession)
-    socket.on('user-promoted', handleRoomUpdateWithSession)
+    socket.on('user-promoted', handleUserPromoted)
     socket.on('user-demoted', handleUserDemoted)
     socket.on('room-rejoined', handleRoomRejoined)
     socket.on('user-rejoined', handleRoomUpdate)
@@ -313,6 +356,7 @@ export const usePokerRoom = (
       socket.off('room-created', handleRoomCreated)
       socket.off('room-joined', handleRoomJoined)
       socket.off('room-not-found', handleRoomNotFound)
+      socket.off('username-taken', handleUsernameTaken)
       socket.off('user-joined', handleRoomUpdate)
       socket.off('user-left', handleRoomUpdate)
       socket.off('vote-updated', handleRoomUpdate)
@@ -320,10 +364,10 @@ export const usePokerRoom = (
       socket.off('votes-revealed', handleRoomUpdate)
       socket.off('reveal-started', handleRoomUpdate)
       socket.off('reveal-modal-closed', handleRevealModalClosed)
-      socket.off('voting-reset', handleRoomUpdate)
+      socket.off('voting-reset', handleVotingReset)
       socket.off('moderator-voting-toggled', handleRoomUpdateWithSession)
       socket.off('voting-values-updated', handleRoomUpdateWithSession)
-      socket.off('user-promoted', handleRoomUpdateWithSession)
+      socket.off('user-promoted', handleUserPromoted)
       socket.off('user-demoted', handleUserDemoted)
       socket.off('room-rejoined', handleRoomRejoined)
       socket.off('user-rejoined', handleRoomUpdate)
@@ -341,9 +385,15 @@ export const usePokerRoom = (
 
   const joinRoom = (roomId: string, userName: string, role: 'participant' | 'spectator' = 'participant') => {
     if (socket) {
+      console.log('🎯 [usePokerRoom] joinRoom called with:', { roomId, userName, role })
+      console.log('🎯 [usePokerRoom] Socket connected?', socket.connected)
       setCurrentUser(userName)
       setRoomId(roomId)
+      setUsernameError(null) // Limpiar error anterior
       socket.emit('join-room', { roomId, userName, role })
+      console.log('🎯 [usePokerRoom] join-room event emitted')
+    } else {
+      console.error('❌ [usePokerRoom] Socket not available for joinRoom')
     }
   }
 
@@ -357,12 +407,17 @@ export const usePokerRoom = (
         console.log(`🔑 Rejoining as CREATOR: ${userName} to room ${roomId}`)
       }
       
-      // Enviar datos de sesión para restaurar showVotes
+      // Enviar datos de sesión para restaurar showVotes y voto del usuario
       const rejoinData = {
         roomId,
         userName,
         sessionShowVotes: sessionData?.showVotes || false,
-        sessionIsVotingComplete: sessionData?.isVotingComplete || false
+        sessionIsVotingComplete: sessionData?.isVotingComplete || false,
+        sessionUserVote: sessionData?.userVote || null, // Incluir voto del usuario en rejoin manual
+        sessionIsModerator: sessionData?.isModerator || false, // NUEVO: incluir estado de moderador
+        sessionIsCreator: sessionData?.isCreator || false, // NUEVO: incluir estado de creador
+        sessionUserRole: sessionData?.userRole || 'participant', // NUEVO: incluir rol del usuario
+        sessionCanVote: sessionData?.userCanVote !== undefined ? sessionData.userCanVote : true // NUEVO: incluir canVote
       }
       
       console.log(`📊 Rejoining with session data:`, rejoinData)
@@ -438,11 +493,16 @@ export const usePokerRoom = (
     clearUrlQueries()
   }
 
+  const clearUsernameError = () => {
+    setUsernameError(null)
+  }
+
   return {
     room,
     currentUser,
     roomId,
     reconnectionFailed,
+    usernameError,
     createRoom,
     joinRoom,
     rejoinRoom,
@@ -455,5 +515,6 @@ export const usePokerRoom = (
     demoteFromModerator,
     endRoom,
     clearReconnectionFailed,
+    clearUsernameError,
   }
 }

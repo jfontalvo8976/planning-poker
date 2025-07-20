@@ -1,55 +1,94 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Users, Plus, LogIn } from 'lucide-react'
-import { getUrlQuery } from '../utils/urlUtils'
+import { useState, useEffect } from "react";
+import { Users, Plus, LogIn } from "lucide-react";
+import { getUrlQuery } from "../utils/urlUtils";
 
 interface JoinCreateRoomProps {
-  onCreateRoom: (userName: string, roomName: string) => void
-  onJoinRoom: (roomId: string, userName: string, role: 'participant' | 'spectator') => void
-  isConnected: boolean
+  onCreateRoom: (userName: string, roomName: string) => void;
+  onJoinRoom: (
+    roomId: string,
+    userName: string,
+    role: "participant" | "spectator"
+  ) => void;
+  isConnected: boolean;
+  usernameError?: string | null;
+  onClearUsernameError?: () => void;
   sessionData?: {
-    roomId: string
-    userName: string
-    roomName: string
-  } | null
+    roomId: string;
+    userName: string;
+    roomName: string;
+  } | null;
 }
 
-export default function JoinCreateRoom({ onCreateRoom, onJoinRoom, isConnected, sessionData }: JoinCreateRoomProps) {
-  const [userName, setUserName] = useState('')
-  const [roomName, setRoomName] = useState('')
-  const [roomId, setRoomId] = useState('')
-  const [activeTab, setActiveTab] = useState<'create' | 'join'>('create')
-  const [userRole, setUserRole] = useState<'participant' | 'spectator'>('participant')
+export default function JoinCreateRoom({
+  onCreateRoom,
+  onJoinRoom,
+  isConnected,
+  usernameError,
+  onClearUsernameError,
+  sessionData,
+}: JoinCreateRoomProps) {
+  const [userName, setUserName] = useState("");
+  const [roomName, setRoomName] = useState("");
+  const [roomId, setRoomId] = useState("");
+  const [activeTab, setActiveTab] = useState<"create" | "join">("create");
+  const [userRole, setUserRole] = useState<"participant" | "spectator">(
+    "participant"
+  );
+
+  const handleRoleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newRole = e.target.value as "participant" | "spectator";
+    console.log("🔄 [JoinCreateRoom] Role changed to:", newRole);
+    setUserRole(newRole);
+  };
+
+  const handleUserNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUserName(e.target.value)
+    // Limpiar error cuando el usuario empiece a escribir
+    if (usernameError && onClearUsernameError) {
+      onClearUsernameError()
+    }
+  }
 
   useEffect(() => {
-    const roomIdFromUrl = getUrlQuery('room')
-    
+    const roomIdFromUrl = getUrlQuery("room");
+
     // Pre-llenar con datos de sesión si están disponibles
     if (sessionData) {
-      setUserName(sessionData.userName)
-      setRoomName(sessionData.roomName)
-      setRoomId(sessionData.roomId)
-      setActiveTab('join')
+      setUserName(sessionData.userName);
+      setRoomName(sessionData.roomName);
+      setRoomId(sessionData.roomId);
+      setActiveTab("join");
     } else if (roomIdFromUrl) {
-      setRoomId(roomIdFromUrl)
-      setActiveTab('join')
+      setRoomId(roomIdFromUrl);
+      setActiveTab("join");
     }
-  }, [sessionData])
+  }, [sessionData]);
 
   const handleCreateRoom = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (userName.trim() && roomName.trim()) {
-      onCreateRoom(userName.trim(), roomName.trim())
+      onCreateRoom(userName.trim(), roomName.trim());
     }
-  }
+  };
 
   const handleJoinRoom = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (userName.trim() && roomId.trim()) {
-      onJoinRoom(roomId.trim(), userName.trim(), userRole)
+      onJoinRoom(roomId.trim(), userName.trim(), userRole);
     }
-  }
+  };
+
+  const classRole =
+    userRole === "participant"
+      ? "from-indigo-50/80 to-purple-50/80 dark:from-indigo-900/20 dark:to-purple-900/20 dark:border-indigo-800 border-indigo-200 "
+      : "from-gray-50/80 to-slate-50/80 dark:from-gray-700/80 dark:to-slate-700/80 dark:border-gray-600 border-gray-200 ";
+
+  const classRoleE =
+    userRole === "spectator"
+      ? "from-indigo-50/80 to-purple-50/80 dark:from-indigo-900/20 dark:to-purple-900/20 dark:border-indigo-800 border-indigo-200 "
+      : "from-gray-50/80 to-slate-50/80 dark:from-gray-700/80 dark:to-slate-700/80 dark:border-gray-600 border-gray-200 ";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 transition-all duration-500">
@@ -69,30 +108,33 @@ export default function JoinCreateRoom({ onCreateRoom, onJoinRoom, isConnected, 
           <div className="animate-scale-in">
             <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 dark:from-green-900/30 dark:to-emerald-900/30 dark:text-green-300 border border-green-200 dark:border-green-800">
               <div className="w-3 h-3 rounded-full mr-2 bg-green-500 animate-pulse"></div>
-              {isConnected ? '✅ Conectado' : '⏳ Conectando...'}
+              {isConnected ? "✅ Conectado" : "⏳ Conectando..."}
             </span>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 lg:p-8 hover-lift animate-slide-up" style={{animationDelay: '0.3s'}}>
+        <div
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 lg:p-8 hover-lift animate-slide-up"
+          style={{ animationDelay: "0.3s" }}
+        >
           <div className="flex mb-8">
             <button
-              onClick={() => setActiveTab('create')}
+              onClick={() => setActiveTab("create")}
               className={`flex-1 py-3 px-6 text-sm font-semibold rounded-l-xl border transition-all duration-200 cursor-pointer ${
-                activeTab === 'create'
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-indigo-500 shadow-lg animate-glow'
-                  : 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border-gray-300 dark:from-gray-700 dark:to-gray-600 dark:text-gray-300 dark:border-gray-600 hover:from-indigo-50 hover:to-purple-50 dark:hover:from-gray-600 dark:hover:to-gray-500'
+                activeTab === "create"
+                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-indigo-500 shadow-lg animate-glow"
+                  : "bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border-gray-300 dark:from-gray-700 dark:to-gray-600 dark:text-gray-300 dark:border-gray-600 hover:from-indigo-50 hover:to-purple-50 dark:hover:from-gray-600 dark:hover:to-gray-500"
               }`}
             >
               <Plus className="w-4 h-4 inline mr-2" />
               Crear Sala
             </button>
             <button
-              onClick={() => setActiveTab('join')}
+              onClick={() => setActiveTab("join")}
               className={`flex-1 py-3 px-6 text-sm font-semibold rounded-r-xl border-t border-r border-b transition-all duration-200 cursor-pointer ${
-                activeTab === 'join'
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-indigo-500 shadow-lg animate-glow'
-                  : 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border-gray-300 dark:from-gray-700 dark:to-gray-600 dark:text-gray-300 dark:border-gray-600 hover:from-indigo-50 hover:to-purple-50 dark:hover:from-gray-600 dark:hover:to-gray-500'
+                activeTab === "join"
+                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-indigo-500 shadow-lg animate-glow"
+                  : "bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border-gray-300 dark:from-gray-700 dark:to-gray-600 dark:text-gray-300 dark:border-gray-600 hover:from-indigo-50 hover:to-purple-50 dark:hover:from-gray-600 dark:hover:to-gray-500"
               }`}
             >
               <LogIn className="w-4 h-4 inline mr-2" />
@@ -100,10 +142,16 @@ export default function JoinCreateRoom({ onCreateRoom, onJoinRoom, isConnected, 
             </button>
           </div>
 
-          {activeTab === 'create' ? (
-            <form onSubmit={handleCreateRoom} className="space-y-6 animate-fade-in">
+          {activeTab === "create" ? (
+            <form
+              onSubmit={handleCreateRoom}
+              className="space-y-6 animate-fade-in"
+            >
               <div className="stagger-item">
-                <label htmlFor="userName" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <label
+                  htmlFor="userName"
+                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
+                >
                   Tu nombre
                 </label>
                 <input
@@ -117,7 +165,10 @@ export default function JoinCreateRoom({ onCreateRoom, onJoinRoom, isConnected, 
                 />
               </div>
               <div className="stagger-item">
-                <label htmlFor="roomName" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <label
+                  htmlFor="roomName"
+                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
+                >
                   Nombre de la sala
                 </label>
                 <input
@@ -140,23 +191,41 @@ export default function JoinCreateRoom({ onCreateRoom, onJoinRoom, isConnected, 
               </button>
             </form>
           ) : (
-            <form onSubmit={handleJoinRoom} className="space-y-6 animate-fade-in">
+            <form
+              onSubmit={handleJoinRoom}
+              className="space-y-6 animate-fade-in"
+            >
               <div className="stagger-item">
-                <label htmlFor="joinUserName" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <label
+                  htmlFor="joinUserName"
+                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
+                >
                   Tu nombre
                 </label>
                 <input
                   type="text"
                   id="joinUserName"
                   value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-all duration-200 hover:shadow-md"
+                  onChange={handleUserNameChange}
+                  className={`w-full px-4 py-3 border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:border-indigo-500 dark:bg-gray-700 dark:text-white transition-all duration-200 hover:shadow-md ${
+                    usernameError 
+                      ? 'border-red-300 dark:border-red-500 focus:ring-red-500' 
+                      : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500'
+                  }`}
                   placeholder="Ingresa tu nombre"
                   required
                 />
+                {usernameError && (
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400 animate-fade-in">
+                    {usernameError}
+                  </p>
+                )}
               </div>
               <div className="stagger-item">
-                <label htmlFor="roomId" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <label
+                  htmlFor="roomId"
+                  className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
+                >
                   ID de la sala
                 </label>
                 <input
@@ -172,40 +241,51 @@ export default function JoinCreateRoom({ onCreateRoom, onJoinRoom, isConnected, 
               <div className="stagger-item">
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
                   Tipo de participación
+                  <span className="ml-2 text-xs bg-blue-100  dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
+                    Actual: {userRole}
+                  </span>
                 </label>
                 <div className="space-y-3">
-                  <label className="flex items-start p-4 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800 cursor-pointer hover:shadow-md transition-all duration-200 group">
+                  <label
+                    className={`flex items-start p-4 bg-gradient-to-r  ${classRole} rounded-xl border border-indigo-200  cursor-pointer hover:shadow-md transition-all duration-200 group`}
+                  >
                     <input
                       type="radio"
                       name="userRole"
                       value="participant"
-                      checked={userRole === 'participant'}
-                      onChange={(e) => setUserRole(e.target.value as 'participant' | 'spectator')}
+                      checked={userRole === "participant"}
+                      onChange={handleRoleChange}
                       className="mt-1 mr-3 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                     />
                     <div>
                       <div className="flex items-center mb-1">
                         <span className="text-lg mr-2">🗳️</span>
-                        <span className="text-sm font-bold text-indigo-800 dark:text-indigo-200">Participante</span>
+                        <span className="text-sm font-bold text-indigo-800 dark:text-indigo-200">
+                          Participante
+                        </span>
                       </div>
                       <span className="text-xs text-indigo-700 dark:text-indigo-300">
                         Puedo votar en las estimaciones
                       </span>
                     </div>
                   </label>
-                  <label className="flex items-start p-4 bg-gradient-to-r from-gray-50/80 to-slate-50/80 dark:from-gray-700/80 dark:to-slate-700/80 rounded-xl border border-gray-200 dark:border-gray-600 cursor-pointer hover:shadow-md transition-all duration-200 group">
+                  <label
+                    className={`flex items-start p-4 bg-gradient-to-r ${classRoleE}  rounded-xl border border-gray-200  cursor-pointer hover:shadow-md transition-all duration-200 group`}
+                  >
                     <input
                       type="radio"
                       name="userRole"
                       value="spectator"
-                      checked={userRole === 'spectator'}
-                      onChange={(e) => setUserRole(e.target.value as 'participant' | 'spectator')}
+                      checked={userRole === "spectator"}
+                      onChange={handleRoleChange}
                       className="mt-1 mr-3 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                     />
                     <div>
                       <div className="flex items-center mb-1">
                         <span className="text-lg mr-2">👁️</span>
-                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200">Espectador</span>
+                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                          Espectador
+                        </span>
                       </div>
                       <span className="text-xs text-gray-700 dark:text-gray-300">
                         Solo observo, no puedo votar
@@ -216,11 +296,11 @@ export default function JoinCreateRoom({ onCreateRoom, onJoinRoom, isConnected, 
               </div>
               <button
                 type="submit"
-                disabled={!isConnected || !userName.trim() || !roomId.trim()}
+                disabled={!isConnected || !userName.trim() || !roomId.trim() || !!usernameError}
                 className="stagger-item w-full btn-gradient flex justify-center items-center py-4 px-6 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer transform hover:scale-105 disabled:transform-none"
               >
                 <LogIn className="w-5 h-5 mr-2" />
-                Unirse a Sala
+                {usernameError ? "Nombre no disponible" : "Unirse a Sala"}
               </button>
             </form>
           )}
@@ -247,5 +327,5 @@ export default function JoinCreateRoom({ onCreateRoom, onJoinRoom, isConnected, 
         </div> */}
       </div>
     </div>
-  )
+  );
 }
